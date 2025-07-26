@@ -1,0 +1,69 @@
+{
+  "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
+  "UUID": "icu.veelume.sc-mapper",
+  "Name": "Star Citizen Mapper",
+  "CodePath": "plugin.exe",
+  "Author": "Veelume",
+  "Version": "0.1.9.1",
+  "Description": "Stream Deck plugin for Star Citizen",
+  "Icon": "imgs/plugin/category-icon",
+  "OS": [
+    {
+      "Platform": "windows",
+      "MinimumVersion": "10"
+    }
+  ],
+  "SDKVersion": 3,
+  "Software": {
+    "MinimumVersion": "6.9"
+  },
+  "Category": "Star Citizen Mapper",
+  "CategoryIcon": "imgs/plugin/marketplace",
+  "Actions": [
+    {
+      "UUID": "icu.veelume.sc-mapper.action",
+      "Name": "Star Citizen Action",
+      "Icon": "imgs/action/icon",
+      "Tooltip": "Sends an action to Star Citizen",
+      "PropertyInspectorPath": "ui/action.html",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/action/icon"
+        }
+      ]
+    },
+    {
+      "UUID": "icu.veelume.sc-mapper.settings",
+      "Name": "Settings",
+      "Icon": "imgs/settings/icon",
+      "Tooltip": "Configure SC Mapper",
+      "PropertyInspectorPath": "ui/settings.html",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/settings/icon"
+        }
+      ]
+    },
+    {
+      "UUID": "icu.veelume.sc-mapper.generatebinds",
+      "Name": "Generate Binds",
+      "Icon": "imgs/binds/icon",
+      "Tooltip": "Generate Keybinds for actions",
+      "PropertyInspectorPath": "ui/binds.html",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/binds/icon"
+        }
+      ]
+    }
+  ]
+}
