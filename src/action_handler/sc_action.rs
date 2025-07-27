@@ -7,7 +7,7 @@ use crate::{
     action_handler::{ send_to_property_inspector, show_alert, ActionHandler, KeyCoordinates },
     data_source::{ DataSourcePayload, DataSourceResult, Item, ItemGroup },
     logger::ActionLog,
-    plugin::{ WriteSink, APP_STATE },
+    plugin::WriteSink,
     state::GameInstallType,
     utils::get_locked_app_state,
 };

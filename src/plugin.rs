@@ -53,7 +53,7 @@ pub fn run_plugin(
         .connect_insecure()
         .map_err(|e| PluginRunError::WebSocketError(format!("WebSocket connect error: {e}")))?;
 
-    let (mut receiver, mut sender) = client
+    let (mut receiver, sender) = client
         .split()
         .map_err(|e| PluginRunError::WebSocketError(format!("Failed to split WebSocket: {e}")))?;
     let write = Arc::new(Mutex::new(sender));

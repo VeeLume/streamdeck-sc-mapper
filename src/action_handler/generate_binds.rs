@@ -6,7 +6,7 @@ use timer::{ Guard, Timer };
 use crate::{
     action_handler::{ show_alert, show_ok, ActionHandler, KeyCoordinates },
     logger::ActionLog,
-    plugin::{ WriteSink, APP_STATE },
+    plugin::WriteSink,
     state::GameInstallType, utils::get_locked_app_state,
 };
 
