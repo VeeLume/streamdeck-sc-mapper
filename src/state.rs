@@ -305,7 +305,7 @@ impl AppState {
             .join("user")
             .join("client")
             .join("0")
-            .join("profile")
+            .join("Profiles")
             .join("default")
             .join("actionmaps.xml");
 
@@ -414,8 +414,8 @@ impl AppState {
             .join(format!("{}.xml", PLUGIN_UUID));
         let profile_name_with_timestamp = format!(
             "{}-{}",
-            PLUGIN_UUID,
-            chrono::Local::now().format("%Y%m%d%H%M%S")
+            profile_name,
+            chrono::Local::now().format("%Y%m%d-%H:%M")
         );
 
         match bindings.generate_mapping_xml(profile_path, None, &profile_name_with_timestamp) {
