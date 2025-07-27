@@ -1,4 +1,4 @@
-use std::{ collections::HashMap, sync::{ atomic::{ AtomicBool, Ordering }, Arc, Mutex }, thread };
+use std::{ collections::HashMap, sync::{ atomic::{ AtomicBool, Ordering }, Arc, Mutex } };
 use chrono::Duration;
 use serde::{ Deserialize, Deserializer, Serialize };
 use serde_json::Value;
@@ -7,7 +7,6 @@ use crate::{
     action_handler::{
         send_to_property_inspector,
         show_alert,
-        show_ok,
         ActionHandler,
         KeyCoordinates,
     },

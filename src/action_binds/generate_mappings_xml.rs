@@ -1,11 +1,9 @@
 use quick_xml::Writer;
 use quick_xml::events::{ BytesDecl, BytesEnd, BytesStart, Event };
 use std::fs::File;
-use std::io::{ BufWriter, Write };
+use std::io::BufWriter;
 use std::path::Path;
-use std::collections::HashMap;
 
-use crate::action_binds::action_binding::ActionBinding;
 use crate::action_binds::action_bindings::ActionBindings;
 
 impl ActionBindings {

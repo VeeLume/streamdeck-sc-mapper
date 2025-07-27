@@ -1,4 +1,4 @@
-use std::{ sync::{ atomic::{ AtomicBool, Ordering }, Arc, Mutex }, thread };
+use std::sync::{ atomic::{ AtomicBool, Ordering }, Arc, Mutex };
 
 use serde_json::Value;
 use timer::{ Guard, Timer };
