@@ -11,6 +11,7 @@ mod state;
 mod data_source;
 mod action_handler;
 mod keyboard_input;
+mod utils;
 
 fn main() -> ExitCode {
     let logger = match FileLogger::from_appdata() {
@@ -79,7 +80,7 @@ fn safe_main(logger: Arc<dyn ActionLog>) -> Result<(), SafeMainError> {
     let _ = logger.log(&format!("🔌 Connecting to {url}"));
 
     // Delegate the actual plugin logic to another module
-    run_plugin(url, plugin_uuid.clone(), register_event.clone(), logger.clone()).map_err(|e| {
+    run_plugin(url, plugin_uuid, register_event, logger).map_err(|e| {
         match e {
             PluginRunError::WebSocketError(msg) => SafeMainError::PluginError(msg),
             PluginRunError::RegistrationError(msg) => SafeMainError::PluginError(msg),

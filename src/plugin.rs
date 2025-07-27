@@ -24,13 +24,13 @@ pub enum PluginRunError {
 
 pub fn run_plugin(
     url: String,
-    plugin_uuid: String,
-    register_event: String,
+    plugin_uuid: &String,
+    register_event: &String,
     logger: Arc<dyn ActionLog>
 ) -> Result<(), PluginRunError> {
     logger.log("🛠️ Initializing AppState...");
 
-    let app_state = match AppState::new(logger.clone()) {
+    let app_state = match AppState::new(Arc::clone(&logger)) {
         Ok(mut state) => {
             state.initialize();
             Arc::new(Mutex::new(state))
@@ -53,7 +53,7 @@ pub fn run_plugin(
         .connect_insecure()
         .map_err(|e| PluginRunError::WebSocketError(format!("WebSocket connect error: {e}")))?;
 
-    let (mut receiver, sender) = client
+    let (mut receiver, mut sender) = client
         .split()
         .map_err(|e| PluginRunError::WebSocketError(format!("Failed to split WebSocket: {e}")))?;
     let write = Arc::new(Mutex::new(sender));
@@ -64,11 +64,16 @@ pub fn run_plugin(
         "uuid": plugin_uuid,
     });
 
+    logger.log(&format!("📨 Registering plugin with UUID: {}", plugin_uuid));
     {
-        let mut writer = write.lock().unwrap();
-        writer
-            .send_message(&OwnedMessage::Text(register_msg.to_string()))
-            .map_err(|e| PluginRunError::RegistrationError(format!("Failed to register: {e}")))?;
+        let mut writer = write.lock().map_err(|e| {
+            logger.log(&format!("❌ Failed to lock WebSocket writer: {}", e));
+            PluginRunError::WebSocketError(format!("Failed to lock WebSocket writer: {}", e))
+        })?;
+        writer.send_message(&OwnedMessage::Text(register_msg.to_string())).map_err(|e| {
+            logger.log(&format!("❌ Failed to send registration message: {}", e));
+            PluginRunError::RegistrationError(format!("Failed to register: {e}"))
+        })?;
     }
 
     logger.log("📨 Sent registration event to Stream Deck");
@@ -76,11 +81,11 @@ pub fn run_plugin(
     let action_handlers: HashMap<String, Arc<dyn ActionHandler>> = HashMap::from([
         (
             GenerateBindsKey::ACTION_NAME.to_string(),
-            Arc::new(GenerateBindsKey::new(logger.clone())) as Arc<dyn ActionHandler>,
+            Arc::new(GenerateBindsKey::new(Arc::clone(&logger))) as Arc<dyn ActionHandler>,
         ),
         (
             ActionKey::ACTION_NAME.to_string(),
-            Arc::new(ActionKey::new(logger.clone())) as Arc<dyn ActionHandler>,
+            Arc::new(ActionKey::new(Arc::clone(&logger))) as Arc<dyn ActionHandler>,
         ),
         // Add more handlers here
     ]);
@@ -105,7 +110,7 @@ pub fn run_plugin(
 
                 if let Some(action_name) = action {
                     if let Some(handler) = action_handlers.get(action_name) {
-                        handler.on_message(write.clone(), &msg);
+                        handler.on_message(Arc::clone(&write), &msg);
                         logger.log(&format!("🔧 Handled action: {}", action_name));
                     } else {
                         logger.log(&format!("❗ Unknown action: {}", action_name));

@@ -4,16 +4,12 @@ use serde::{ Deserialize, Deserializer, Serialize };
 use serde_json::Value;
 use timer::{ Guard, Timer };
 use crate::{
-    action_handler::{
-        send_to_property_inspector,
-        show_alert,
-        ActionHandler,
-        KeyCoordinates,
-    },
+    action_handler::{ send_to_property_inspector, show_alert, ActionHandler, KeyCoordinates },
     data_source::{ DataSourcePayload, DataSourceResult, Item, ItemGroup },
     logger::ActionLog,
     plugin::{ WriteSink, APP_STATE },
     state::GameInstallType,
+    utils::get_locked_app_state,
 };
 
 fn string_or_integer_to_i64<'de, D>(deserializer: D) -> Result<i64, D::Error>
@@ -54,8 +50,10 @@ impl Default for Settings {
 
 impl Settings {
     pub fn from_json(map: &serde_json::Map<String, Value>) -> Result<Self, String> {
-        let value = Value::Object(map.clone()); // convert Map to Value::Object
-        serde_json::from_value(value).map_err(|e| format!("Failed to parse settings: {e}"))
+        let json = serde_json::to_value(map)
+            .map_err(|e| format!("Failed to convert settings to JSON: {}", e))?;
+        serde_json::from_value(json)
+            .map_err(|e| format!("Failed to deserialize settings: {}", e))
     }
 
     pub fn to_json(&self) -> serde_json::Map<String, Value> {
@@ -109,46 +107,36 @@ impl ActionHandler for ActionKey {
         };
 
         if settings.enable_long_press && settings.action_long.is_some() {
-            let logger = self.logger.clone();
+            let logger = Arc::clone(&self.logger);
             let action_id = match settings.action_long {
-                Some(ref action) => action.clone(),
+                Some(action) => action,
                 None => {
                     logger.log("❌ Long press action not configured");
                     return;
                 }
             };
             let context = context.to_string();
-            let write = Arc::clone(&write);
             let long_fired = Arc::clone(&self.long_fired);
-
-            let app_state = match APP_STATE.get().cloned() {
-                Some(state) => state,
-                None => {
-                    logger.log("❌ AppState not initialized");
-                    show_alert(write, &context);
-                    return;
-                }
-            };
-            let app_state = Arc::clone(&app_state);
 
             let guard = self.timer.schedule_with_delay(
                 Duration::milliseconds(settings.long_press_period),
                 move || {
                     long_fired.store(true, Ordering::SeqCst);
                     logger.log("👉 Long press detected, executing long action");
+                    let write = Arc::clone(&write);
 
-                    let state = match app_state.lock() {
-                        Ok(s) => s,
-                        Err(_) => {
-                            logger.log("❌ AppState poisoned (long press)");
-                            show_alert(write.clone(), &context);
+                    let state = match get_locked_app_state() {
+                        Ok(state) => state,
+                        Err(e) => {
+                            logger.log(&format!("❌ AppState error: {}", e));
+                            show_alert(write, &context);
                             return;
                         }
                     };
 
                     if let Err(e) = state.send_key(&action_id) {
                         logger.log(&format!("❌ Failed to send long press key: {e}"));
-                        show_alert(write.clone(), &context);
+                        show_alert(write, &context);
                     }
                 }
             );
@@ -190,19 +178,10 @@ impl ActionHandler for ActionKey {
         if let Some(action) = settings.action_short {
             self.logger.log("👋 Short press detected, executing short action");
 
-            let app_state = match APP_STATE.get().cloned() {
-                Some(state) => state,
-                None => {
-                    self.logger.log("❌ AppState not initialized");
-                    show_alert(write, context);
-                    return;
-                }
-            };
-
-            let state = match app_state.lock() {
-                Ok(s) => s,
-                Err(_) => {
-                    self.logger.log("❌ AppState poisoned (short press)");
+            let state = match get_locked_app_state() {
+                Ok(state) => state,
+                Err(e) => {
+                    self.logger.log(&format!("❌ AppState error: {}", e));
                     show_alert(write, context);
                     return;
                 }
@@ -228,19 +207,10 @@ impl ActionHandler for ActionKey {
 
         match event {
             Some("getActions") => {
-                let app_state = match APP_STATE.get().cloned() {
-                    Some(state) => state,
-                    None => {
-                        self.logger.log("❌ AppState not initialized");
-                        show_alert(write, context);
-                        return;
-                    }
-                };
-
-                let mut state = match app_state.lock() {
-                    Ok(s) => s,
-                    Err(_) => {
-                        self.logger.log("❌ AppState poisoned (short press)");
+                let mut state = match get_locked_app_state() {
+                    Ok(state) => state,
+                    Err(e) => {
+                        self.logger.log(&format!("❌ AppState error: {}", e));
                         show_alert(write, context);
                         return;
                     }

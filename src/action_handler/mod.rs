@@ -388,12 +388,7 @@ pub trait ActionHandler: Send + Sync {
         _state: Option<u8>
     ) {}
 
-    fn on_property_inspector_did_appear(
-        &self,
-        _write: WriteSink,
-        _context: &str,
-        _device: &str
-    ) {}
+    fn on_property_inspector_did_appear(&self, _write: WriteSink, _context: &str, _device: &str) {}
 
     fn on_property_inspector_did_disappear(
         &self,
@@ -458,55 +453,56 @@ pub trait ActionHandler: Send + Sync {
 }
 
 fn get_setting(write: WriteSink, context: &str) {
-    let msg = serde_json::json!({
+    if let Ok(mut writer) = write.lock() {
+        let msg =
+            serde_json::json!({
         "event": "getSettings",
         "context": context,
     });
 
-    let msg = OwnedMessage::Text(msg.to_string());
-    if let Ok(mut writer) = write.lock() {
+        let msg = OwnedMessage::Text(msg.to_string());
         let _ = writer.send_message(&msg);
     }
 }
 
 fn send_to_property_inspector(write: WriteSink, context: &str, payload: DataSourcePayload) {
-    let msg =
-        serde_json::json!({
+    if let Ok(mut writer) = write.lock() {
+        let msg =
+            serde_json::json!({
         "event": "sendToPropertyInspector",
         "context": context,
         "payload": payload
     });
 
-    let msg = OwnedMessage::Text(msg.to_string());
-    if let Ok(mut writer) = write.lock() {
+        let msg = OwnedMessage::Text(msg.to_string());
         let _ = writer.send_message(&msg);
     }
 }
 
 fn set_feedback(write: WriteSink, context: &str, layout: HashMap<String, Value>) {
-    let msg =
-        serde_json::json!({
+    if let Ok(mut writer) = write.lock() {
+        let msg =
+            serde_json::json!({
         "event": "setFeedback",
         "context": context,
         "layout": layout
     });
 
-    let msg = OwnedMessage::Text(msg.to_string());
-    if let Ok(mut writer) = write.lock() {
+        let msg = OwnedMessage::Text(msg.to_string());
         let _ = writer.send_message(&msg);
     }
 }
 
 fn set_feedback_layout(write: WriteSink, context: &str, layout: &str) {
-    let msg =
-        serde_json::json!({
+    if let Ok(mut writer) = write.lock() {
+        let msg =
+            serde_json::json!({
         "event": "setFeedbackLayout",
         "context": context,
         "layout": layout
     });
 
-    let msg = OwnedMessage::Text(msg.to_string());
-    if let Ok(mut writer) = write.lock() {
+        let msg = OwnedMessage::Text(msg.to_string());
         let _ = writer.send_message(&msg);
     }
 }
@@ -518,8 +514,9 @@ fn set_image(
     state: Option<u8>,
     target: Option<String>
 ) {
-    let msg =
-        serde_json::json!({
+    if let Ok(mut writer) = write.lock() {
+        let msg =
+            serde_json::json!({
         "event": "setImage",
         "context": context,
         "payload": {
@@ -529,29 +526,29 @@ fn set_image(
         }
     });
 
-    let msg = OwnedMessage::Text(msg.to_string());
-    if let Ok(mut writer) = write.lock() {
+        let msg = OwnedMessage::Text(msg.to_string());
         let _ = writer.send_message(&msg);
     }
 }
 
 fn set_settings(write: WriteSink, context: &str, settings: HashMap<String, Value>) {
-    let msg =
-        serde_json::json!({
+    if let Ok(mut writer) = write.lock() {
+        let msg =
+            serde_json::json!({
         "event": "setSettings",
         "context": context,
         "payload": settings
     });
 
-    let msg = OwnedMessage::Text(msg.to_string());
-    if let Ok(mut writer) = write.lock() {
+        let msg = OwnedMessage::Text(msg.to_string());
         let _ = writer.send_message(&msg);
     }
 }
 
 fn set_state(write: WriteSink, context: &str, state: u8) {
-    let msg =
-        serde_json::json!({
+    if let Ok(mut writer) = write.lock() {
+        let msg =
+            serde_json::json!({
         "event": "setState",
         "context": context,
         "payload": {
@@ -559,8 +556,7 @@ fn set_state(write: WriteSink, context: &str, state: u8) {
         }
     });
 
-    let msg = OwnedMessage::Text(msg.to_string());
-    if let Ok(mut writer) = write.lock() {
+        let msg = OwnedMessage::Text(msg.to_string());
         let _ = writer.send_message(&msg);
     }
 }
@@ -572,8 +568,9 @@ fn set_title(
     target: Option<String>,
     title: Option<String>
 ) {
-    let msg =
-        serde_json::json!({
+    if let Ok(mut writer) = write.lock() {
+        let msg =
+            serde_json::json!({
         "event": "setTitle",
         "context": context,
         "payload": {
@@ -583,8 +580,7 @@ fn set_title(
         }
     });
 
-    let msg = OwnedMessage::Text(msg.to_string());
-    if let Ok(mut writer) = write.lock() {
+        let msg = OwnedMessage::Text(msg.to_string());
         let _ = writer.send_message(&msg);
     }
 }
@@ -597,8 +593,9 @@ fn set_trigger_description(
     rotate: Option<String>,
     touch: Option<String>
 ) {
-    let msg =
-        serde_json::json!({
+    if let Ok(mut writer) = write.lock() {
+        let msg =
+            serde_json::json!({
         "event": "setTriggerDescription",
         "context": context,
         "payload": {
@@ -609,32 +606,33 @@ fn set_trigger_description(
         }
     });
 
-    let msg = OwnedMessage::Text(msg.to_string());
-    if let Ok(mut writer) = write.lock() {
+        let msg = OwnedMessage::Text(msg.to_string());
         let _ = writer.send_message(&msg);
     }
 }
 
 fn show_alert(write: WriteSink, context: &str) {
-    let msg = serde_json::json!({
-        "event": "showAlert",
-        "context": context
-    });
-
-    let msg = OwnedMessage::Text(msg.to_string());
     if let Ok(mut writer) = write.lock() {
+        let msg =
+            serde_json::json!({
+            "event": "showAlert",
+            "context": context
+        });
+
+        let msg = OwnedMessage::Text(msg.to_string());
         let _ = writer.send_message(&msg);
     }
 }
 
 fn show_ok(write: WriteSink, context: &str) {
-    let msg = serde_json::json!({
-        "event": "showOk",
-        "context": context
-    });
-
-    let msg = OwnedMessage::Text(msg.to_string());
     if let Ok(mut writer) = write.lock() {
+        let msg =
+            serde_json::json!({
+            "event": "showOk",
+            "context": context
+        });
+
+        let msg = OwnedMessage::Text(msg.to_string());
         let _ = writer.send_message(&msg);
     }
 }

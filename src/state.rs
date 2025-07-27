@@ -70,7 +70,7 @@ impl AppState {
             .collect();
 
         let action_bindings = GameInstallType::ALL.iter()
-            .map(|&ty| (ty, ActionBindings::new(logger.clone())))
+            .map(|&ty| (ty, ActionBindings::new(Arc::clone(&logger))))
             .collect();
 
         let translations = GameInstallType::ALL.iter()
@@ -190,8 +190,7 @@ impl AppState {
             return;
         }
 
-        let mut translation_file = self.resource_dir.clone();
-        translation_file.push("global.ini");
+        let translation_file = self.resource_dir.join("global.ini");
 
         if !fs::exists(&translation_file).unwrap_or(false) {
             self.logger.log(
@@ -434,8 +433,7 @@ impl AppState {
             .ok_or_else(|| format!("Action '{}' not found", action_id))?;
 
         action
-            .clone()
-            .simulate(self.logger.clone())
+            .simulate(Arc::clone(&self.logger))
             .map_err(|e| format!("Simulation failed: {}", e))
     }
 }

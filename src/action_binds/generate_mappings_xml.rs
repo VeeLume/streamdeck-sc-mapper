@@ -28,7 +28,7 @@ impl ActionBindings {
         root.push_attribute(("rebindVersion", "2"));
         root.push_attribute(("profileName", profile_name));
         writer
-            .write_event(Event::Start(root.clone()))
+            .write_event(Event::Start(root))
             .map_err(|e| format!("Failed to write <ActionMaps>: {e}"))?;
 
         // CustomisationUIHeader
@@ -37,7 +37,7 @@ impl ActionBindings {
         header.push_attribute(("description", ""));
         header.push_attribute(("image", ""));
         writer
-            .write_event(Event::Start(header.clone()))
+            .write_event(Event::Start(header))
             .map_err(|e| format!("Failed to write <CustomisationUIHeader>: {e}"))?;
 
         // Devices

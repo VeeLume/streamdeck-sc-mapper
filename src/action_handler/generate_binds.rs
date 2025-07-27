@@ -7,7 +7,7 @@ use crate::{
     action_handler::{ show_alert, show_ok, ActionHandler, KeyCoordinates },
     logger::ActionLog,
     plugin::{ WriteSink, APP_STATE },
-    state::GameInstallType,
+    state::GameInstallType, utils::get_locked_app_state,
 };
 
 pub struct GenerateBindsKey {
@@ -44,19 +44,8 @@ impl ActionHandler for GenerateBindsKey {
     ) {
         self.fired.store(false, Ordering::SeqCst);
         let fired = Arc::clone(&self.fired);
-        let logger = Arc::clone(&self.logger);
         let context = context.to_string();
-        let write = Arc::clone(&write);
-
-        let app_state = match APP_STATE.get().cloned() {
-            Some(state) => state,
-            None => {
-                logger.log("❌ AppState not initialized");
-                show_alert(write, &context);
-                return;
-            }
-        };
-        let app_state = Arc::clone(&app_state);
+        let logger = Arc::clone(&self.logger);
 
         let guard = self.timer.schedule_with_delay(chrono::Duration::milliseconds(500), move || {
             if fired.load(Ordering::SeqCst) {
@@ -66,18 +55,19 @@ impl ActionHandler for GenerateBindsKey {
             fired.store(true, Ordering::SeqCst);
             logger.log("👉 Long press detected, generating binds with default");
 
-            let mut state = match app_state.lock() {
+            let writer = Arc::clone(&write);
+            let mut state = match get_locked_app_state() {
                 Ok(s) => s,
-                Err(_) => {
-                    logger.log("❌ AppState poisoned (long press)");
-                    show_alert(write.clone(), &context);
+                Err(e) => {
+                    logger.log(&format!("❌ Appstate error: {}", e));
+                    show_alert(writer, &context);
                     return;
                 }
             };
 
             if !state.parse_action_bindings(GameInstallType::Live, false) {
                 logger.log("❌ Failed to generate binds");
-                show_alert(write.clone(), &context);
+                show_alert(writer, &context);
                 return;
             }
 
@@ -88,12 +78,12 @@ impl ActionHandler for GenerateBindsKey {
                 )
             {
                 logger.log(&format!("❌ Failed to create profile XML: {e}"));
-                show_alert(write.clone(), &context);
+                show_alert(writer, &context);
                 return;
             }
 
             logger.log("✅ Long press generation complete");
-            show_ok(write.clone(), &context);
+            show_ok(writer, &context);
         });
 
         if let Ok(mut task_guard) = self.long_press_guard.lock() {
@@ -123,22 +113,14 @@ impl ActionHandler for GenerateBindsKey {
 
         self.logger.log("👋 Short press detected, generating binds with custom");
 
-        let app_state = match APP_STATE.get().cloned() {
-            Some(state) => state,
-            None => {
-                self.logger.log("❌ AppState not initialized");
-                show_alert(write, context);
-                return;
-            }
-        };
-
-        let mut state = match app_state.lock() {
+        let mut state = match get_locked_app_state() {
             Ok(s) => s,
-            Err(_) => {
-                self.logger.log("❌ AppState poisoned (short press)");
+            Err(e) => {
+                self.logger.log(&format!("❌ Appstate error: {}", e));
                 show_alert(write, context);
                 return;
             }
+
         };
 
         if !state.parse_action_bindings(GameInstallType::Live, true) {

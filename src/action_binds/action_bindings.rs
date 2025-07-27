@@ -220,8 +220,20 @@ impl ActionBindings {
                 // Apply custom binds regardless of whether any are active
                 if let Some(action_map) = self.action_maps.get_mut(action_map_name) {
                     if let Some(binding) = action_map.actions.get_mut(action_name) {
-                        binding.custom_binds = Some(binds.clone());
+                        binding.custom_binds = Some(binds);
 
+                        let binds = match binding.custom_binds.as_ref() {
+                            Some(b) => b,
+                            None => {
+                                self.logger.log(
+                                    &format!(
+                                        "[apply_custom_profile] No custom binds found for {action_map_name}.{action_name}"
+                                    )
+                                );
+                                continue;
+                            }
+
+                        };
                         if binds.has_active_binds() {
                             self.logger.log(
                                 &format!(
@@ -261,8 +273,8 @@ impl ActionBindings {
 
     pub fn generate_missing_binds(&mut self) {
         let mut generator = BindGenerator::default(
-            self.logger.clone(),
-            self.activation_modes.clone()
+            Arc::clone(&self.logger),
+            self.activation_modes.clone(),
         );
 
         generator.generate_missing_binds(&mut self.action_maps);

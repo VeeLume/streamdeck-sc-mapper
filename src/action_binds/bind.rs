@@ -104,20 +104,28 @@ impl Bind {
         match main_keys.len() {
             0 if modifiers.len() == 1 => {
                 // Modifier-only bind
+                let mainkey= match modifiers.iter().next() {
+                    Some(mod_key) => mod_key.clone(),
+                    None => return Err(BindParseError::NoInput),
+                };
                 Ok(Bind {
-                    mainkey: modifiers.iter().next().unwrap().clone(),
+                    mainkey: mainkey,
                     modifiers: HashSet::new(),
                     activation_mode,
                     is_unbound: false,
                 })
             }
-            1 =>
+            1 => {
+                let mainkey = match main_keys.iter().next() {
+                    Some(key) => key.clone(),
+                    None => return Err(BindParseError::NoInput),
+                };
                 Ok(Bind {
-                    mainkey: main_keys[0].clone(),
+                    mainkey: mainkey,
                     modifiers,
                     activation_mode,
                     is_unbound: false,
-                }),
+                })},
             _ =>
                 Err(BindParseError::TooManyMainKeys {
                     input: input.to_string(),
