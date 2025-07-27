@@ -206,7 +206,6 @@ impl BindGenerator {
     pub fn generate_missing_binds(
         &mut self,
         action_maps: &mut IndexMap<String, ActionMap>,
-        logger: Arc<dyn ActionLog>
     ) {
         self.register_existing_binds(action_maps);
 
@@ -232,7 +231,7 @@ impl BindGenerator {
                         mouse: vec![],
                     });
 
-                    let _ = logger.log(
+                    let _ = self.logger.log(
                         &format!(
                             "✅ Generated bind for {}.{}: {:?}",
                             map_name,
@@ -241,13 +240,13 @@ impl BindGenerator {
                         )
                     );
                 } else {
-                    let _ = logger.log(
+                    let _ = self.logger.log(
                         &format!("⚠️ No available bind for {}.{}", map_name, binding.action_name)
                     );
                 }
             }
         }
 
-        let _ = logger.log("[generate_missing_binds] Done generating binds");
+        let _ = self.logger.log("[generate_missing_binds] Done generating binds");
     }
 }

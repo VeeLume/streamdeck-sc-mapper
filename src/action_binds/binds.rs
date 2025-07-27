@@ -18,11 +18,6 @@ impl Binds {
         }
     }
 
-    /// Returns true if both keyboard and mouse binds are empty or contain only unbound binds.
-    pub fn is_empty(&self) -> bool {
-        self.keyboard.iter().all(|b| b.is_unbound) && self.mouse.iter().all(|b| b.is_unbound)
-    }
-
     /// Returns true if there are any active binds (not unbound) in either keyboard or mouse.
     pub fn has_active_binds(&self) -> bool {
         self.keyboard.iter().any(|b| !b.is_unbound) || self.mouse.iter().any(|b| !b.is_unbound)

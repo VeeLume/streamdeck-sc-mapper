@@ -7,16 +7,6 @@ use crate::{
     logger::ActionLog,
 };
 
-#[derive(Debug, Clone)]
-pub struct ActivationMode {
-    pub on_hold: bool,
-    pub on_press: bool,
-    pub on_release: bool,
-    pub multi_tap: u8,
-    pub press_trigger_threshold: f32,
-    pub hold_trigger_delay: f32,
-}
-
 impl ActionBinding {
     pub fn simulate(&self, logger: Arc<dyn ActionLog>) -> Result<(), String> {
         let bind = {
@@ -83,8 +73,8 @@ impl ActionBinding {
 }
 
 fn send_input_combo(bind: &Bind, hold: Option<Duration>) -> Result<(), String> {
-    let mut down_events = Vec::new();
-    let mut up_events = Vec::new();
+    let mut down_events: Vec<INPUT> = Vec::new();
+    let mut up_events: Vec<INPUT> = Vec::new();
 
     for mod_key in &bind.modifiers {
         if let Some(scan) = get_scan_code(mod_key) {
@@ -96,15 +86,15 @@ fn send_input_combo(bind: &Bind, hold: Option<Duration>) -> Result<(), String> {
     }
 
     if let Some(scan) = get_scan_code(&bind.mainkey) {
-        let main_down = build_input(scan, true, is_extended_key(&bind.mainkey));
-        let main_up = build_input(scan, false, is_extended_key(&bind.mainkey));
+        let main_down: INPUT = build_input(scan, true, is_extended_key(&bind.mainkey));
+        let main_up: INPUT = build_input(scan, false, is_extended_key(&bind.mainkey));
 
         if let Some(dur) = hold {
-            send_events(&[down_events.clone(), vec![main_down]].concat().clone());
+            send_events([down_events.as_slice(), &[main_down]].concat().as_slice());
             thread::sleep(dur);
-            send_events(&[up_events.clone(), vec![main_up]].concat());
+            send_events([up_events.as_slice(), &[main_up]].concat().as_slice());
         } else {
-            send_events(&[down_events, vec![main_down, main_up], up_events].concat());
+            send_events([down_events.as_slice(), &[main_down, main_up], up_events.as_slice()].concat().as_slice());
         }
     } else {
         return Err(format!("Unknown main key: {}", bind.mainkey));

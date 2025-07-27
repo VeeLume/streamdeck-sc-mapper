@@ -55,7 +55,6 @@ pub trait ActionHandler: Send + Sync {
                     };
                     self.on_dial_rotate(
                         write,
-                        "",
                         context,
                         device,
                         &coordinates,
@@ -84,7 +83,7 @@ pub trait ActionHandler: Send + Sync {
 
             "sendToPlugin" => {
                 if let Some(payload) = payload {
-                    self.on_did_receive_property_inspector_message(write, "", context, payload);
+                    self.on_did_receive_property_inspector_message(write, context, payload);
                 }
             }
 
@@ -113,8 +112,8 @@ pub trait ActionHandler: Send + Sync {
 
                     self.on_did_receive_settings(
                         write,
-                        "",
                         context,
+                        device,
                         controller,
                         is_multi,
                         coordinates.as_ref(),
@@ -154,7 +153,6 @@ pub trait ActionHandler: Send + Sync {
                         "keyDown" => {
                             self.on_key_down(
                                 write,
-                                "",
                                 context,
                                 device,
                                 is_multi,
@@ -167,7 +165,6 @@ pub trait ActionHandler: Send + Sync {
                         "keyUp" => {
                             self.on_key_up(
                                 write,
-                                "",
                                 context,
                                 device,
                                 is_multi,
@@ -183,13 +180,13 @@ pub trait ActionHandler: Send + Sync {
 
             "propertyInspectorDidAppear" => {
                 if let Some(device) = msg.get("device").and_then(Value::as_str) {
-                    self.on_property_inspector_did_appear(write, "", context, device);
+                    self.on_property_inspector_did_appear(write, context, device);
                 }
             }
 
             "propertyInspectorDidDisappear" => {
                 if let Some(device) = msg.get("device").and_then(Value::as_str) {
-                    self.on_property_inspector_did_disappear(write, "", context, device);
+                    self.on_property_inspector_did_disappear(write, context, device);
                 }
             }
 
@@ -217,7 +214,6 @@ pub trait ActionHandler: Send + Sync {
                     };
                     self.on_title_parameters_did_change(
                         write,
-                        "",
                         context,
                         device,
                         controller,
@@ -260,16 +256,7 @@ pub trait ActionHandler: Send + Sync {
                         .and_then(|p| p.get("hold"))
                         .and_then(Value::as_bool)
                         .unwrap_or(false);
-                    self.on_touch_tab(
-                        write,
-                        "",
-                        context,
-                        device,
-                        &coordinates,
-                        hold,
-                        settings,
-                        pos
-                    );
+                    self.on_touch_tab(write, context, device, &coordinates, hold, settings, pos);
                 }
             }
 
@@ -300,9 +287,9 @@ pub trait ActionHandler: Send + Sync {
                         "willAppear" => {
                             self.on_will_appear(
                                 write,
-                                "",
                                 context,
                                 device,
+                                controller,
                                 is_multi,
                                 coordinates.as_ref(),
                                 settings,
@@ -312,9 +299,9 @@ pub trait ActionHandler: Send + Sync {
                         "willDisappear" => {
                             self.on_will_disappear(
                                 write,
-                                "",
                                 context,
                                 device,
+                                controller,
                                 is_multi,
                                 coordinates.as_ref(),
                                 settings,
@@ -332,149 +319,141 @@ pub trait ActionHandler: Send + Sync {
 
     fn on_dial_down(
         &self,
-        write: WriteSink,
-        action: &str,
-        context: &str,
-        coordinates: &KeyCoordinates,
-        settings: &serde_json::Map<std::string::String, Value>
+        _write: WriteSink,
+        _context: &str,
+        _device: &str,
+        _coordinates: &KeyCoordinates,
+        _settings: &serde_json::Map<std::string::String, Value>
     ) {}
 
     fn on_dial_rotate(
         &self,
-        write: WriteSink,
-        action: &str,
-        context: &str,
-        device: &str,
-        coordinates: &KeyCoordinates,
-        pressed: bool,
-        settings: &serde_json::Map<std::string::String, Value>,
-        ticks: f64
+        _write: WriteSink,
+        _context: &str,
+        _device: &str,
+        _coordinates: &KeyCoordinates,
+        _pressed: bool,
+        _settings: &serde_json::Map<std::string::String, Value>,
+        _ticks: f64
     ) {}
 
     fn on_dial_up(
         &self,
-        write: WriteSink,
-        action: &str,
-        context: &str,
-        coordinates: &KeyCoordinates,
-        settings: &serde_json::Map<std::string::String, Value>
+        _write: WriteSink,
+        _device: &str,
+        _context: &str,
+        _coordinates: &KeyCoordinates,
+        _settings: &serde_json::Map<std::string::String, Value>
     ) {}
 
     fn on_did_receive_property_inspector_message(
         &self,
-        write: WriteSink,
-        action: &str,
-        context: &str,
-        payload: &Value
+        _write: WriteSink,
+        _context: &str,
+        _payload: &Value
     ) {}
 
     fn on_did_receive_settings(
         &self,
-        write: WriteSink,
-        action: &str,
-        context: &str,
-        controller: &str,
-        is_in_multi_action: bool,
-        coordinates: Option<&KeyCoordinates>,
-        settings: &serde_json::Map<std::string::String, Value>,
-        state: Option<u8>
+        _write: WriteSink,
+        _context: &str,
+        _device: &str,
+        _controller: &str,
+        _is_in_multi_action: bool,
+        _coordinates: Option<&KeyCoordinates>,
+        _settings: &serde_json::Map<std::string::String, Value>,
+        _state: Option<u8>
     ) {}
 
     fn on_key_down(
         &self,
-        write: WriteSink,
-        action: &str,
-        context: &str,
-        device: &str,
-        is_in_multi_action: bool,
-        coordinates: Option<&KeyCoordinates>,
-        settings: &serde_json::Map<std::string::String, Value>,
-        state: Option<u8>,
-        user_desired_state: Option<u8>
+        _write: WriteSink,
+        _context: &str,
+        _device: &str,
+        _is_in_multi_action: bool,
+        _coordinates: Option<&KeyCoordinates>,
+        _settings: &serde_json::Map<std::string::String, Value>,
+        _state: Option<u8>,
+        _user_desired_state: Option<u8>
     ) {}
 
     fn on_key_up(
         &self,
-        write: WriteSink,
-        action: &str,
-        context: &str,
-        device: &str,
-        is_in_multi_action: bool,
-        coordinates: Option<&KeyCoordinates>,
-        settings: &serde_json::Map<std::string::String, Value>,
-        state: Option<u8>
+        _write: WriteSink,
+        _context: &str,
+        _device: &str,
+        _is_in_multi_action: bool,
+        _coordinates: Option<&KeyCoordinates>,
+        _settings: &serde_json::Map<std::string::String, Value>,
+        _state: Option<u8>
     ) {}
 
     fn on_property_inspector_did_appear(
         &self,
-        write: WriteSink,
-        action: &str,
-        context: &str,
-        device: &str
+        _write: WriteSink,
+        _context: &str,
+        _device: &str
     ) {}
 
     fn on_property_inspector_did_disappear(
         &self,
-        write: WriteSink,
-        action: &str,
-        context: &str,
-        device: &str
+        _write: WriteSink,
+        _context: &str,
+        _device: &str
     ) {}
 
     fn on_title_parameters_did_change(
         &self,
-        write: WriteSink,
-        action: &str,
-        context: &str,
-        device: &str,
-        controller: &str,
-        coordinates: &KeyCoordinates,
-        settings: &serde_json::Map<std::string::String, Value>,
-        state: Option<u8>,
-        title: &str,
-        font_family: &str,
-        font_size: i32,
-        font_style: &str,
-        font_underline: bool,
-        show_title: bool,
-        title_alignment: &str,
-        title_color: &str
+        _write: WriteSink,
+        _context: &str,
+        _device: &str,
+        _controller: &str,
+        _coordinates: &KeyCoordinates,
+        _settings: &serde_json::Map<std::string::String, Value>,
+        _state: Option<u8>,
+        _title: &str,
+        _font_family: &str,
+        _font_size: i32,
+        _font_style: &str,
+        _font_underline: bool,
+        _show_title: bool,
+        _title_alignment: &str,
+        _title_color: &str
     ) {}
 
     fn on_touch_tab(
         &self,
-        write: WriteSink,
-        action: &str,
-        context: &str,
-        device: &str,
-        coordinates: &KeyCoordinates,
-        hold: bool,
-        settings: &serde_json::Map<std::string::String, Value>,
-        tap_pos: (f64, f64)
+        _write: WriteSink,
+        _context: &str,
+        _device: &str,
+        _coordinates: &KeyCoordinates,
+        _hold: bool,
+        _settings: &serde_json::Map<std::string::String, Value>,
+        _tap_pos: (f64, f64)
     ) {}
 
     fn on_will_appear(
         &self,
-        write: WriteSink,
-        action: &str,
-        context: &str,
-        device: &str,
-        is_in_multi_action: bool,
-        coordinates: Option<&KeyCoordinates>,
-        settings: &serde_json::Map<std::string::String, Value>,
-        state: Option<u8>
+        _write: WriteSink,
+        _context: &str,
+        _device: &str,
+        _controller: &str,
+        _is_in_multi_action: bool,
+        _coordinates: Option<&KeyCoordinates>,
+        _settings: &serde_json::Map<std::string::String, Value>,
+        _state: Option<u8>
     ) {}
 
     fn on_will_disappear(
         &self,
-        write: WriteSink,
-        action: &str,
-        context: &str,
-        device: &str,
-        is_in_multi_action: bool,
-        coordinates: Option<&KeyCoordinates>,
-        settings: &serde_json::Map<std::string::String, Value>,
-        state: Option<u8>
+        _write: WriteSink,
+        _context: &str,
+        _device: &str,
+        _controller: &str,
+        _is_in_multi_action: bool,
+        _coordinates: Option<&KeyCoordinates>,
+        _settings: &serde_json::Map<std::string::String, Value>,
+        _state: Option<u8>
     ) {}
 }
 

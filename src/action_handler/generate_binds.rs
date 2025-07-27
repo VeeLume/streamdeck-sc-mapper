@@ -34,7 +34,6 @@ impl ActionHandler for GenerateBindsKey {
     fn on_key_down(
         &self,
         write: WriteSink,
-        _action: &str,
         context: &str,
         _device: &str,
         _is_multi: bool,
@@ -105,7 +104,6 @@ impl ActionHandler for GenerateBindsKey {
     fn on_key_up(
         &self,
         write: WriteSink,
-        _action: &str,
         context: &str,
         _device: &str,
         _is_multi: bool,

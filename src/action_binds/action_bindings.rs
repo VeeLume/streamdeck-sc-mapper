@@ -6,7 +6,6 @@ use serde::{ Deserialize, Serialize };
 
 use crate::{
     action_binds::{
-        action_binding::ActionBinding,
         action_map::ActionMap,
         activation_mode::ActivationMode,
         bind::Bind,
@@ -29,18 +28,6 @@ pub struct ActionBindings {
 }
 
 impl ActionBindings {
-    pub fn bindings(&self) -> HashMap<String, &ActionBinding> {
-        let mut result = HashMap::new();
-
-        for map in self.action_maps.values() {
-            for (action_name, binding) in &map.actions {
-                result.insert(binding.action_id.clone(), binding);
-            }
-        }
-
-        result
-    }
-
     pub fn get_binding_by_id(
         &self,
         id: &str
@@ -278,6 +265,6 @@ impl ActionBindings {
             self.activation_modes.clone()
         );
 
-        generator.generate_missing_binds(&mut self.action_maps, self.logger.clone());
+        generator.generate_missing_binds(&mut self.action_maps);
     }
 }

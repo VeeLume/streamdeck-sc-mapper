@@ -1,4 +1,3 @@
-use roxmltree::Node;
 use serde::{ Serialize, Deserialize };
 use std::fmt;
 use std::{ collections::HashSet };
@@ -69,14 +68,6 @@ impl Bind {
             activation_mode,
             is_unbound,
         }
-    }
-
-    pub fn from_node(
-        node: Node,
-        activation_mode: Option<ActivationMode>
-    ) -> Result<Self, BindParseError> {
-        let input = node.attribute("input").ok_or(BindParseError::NoInput)?;
-        Bind::from_string(input, activation_mode)
     }
 
     pub fn from_string(

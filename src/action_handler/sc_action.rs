@@ -90,7 +90,6 @@ impl ActionHandler for ActionKey {
     fn on_key_down(
         &self,
         write: WriteSink,
-        _action: &str,
         context: &str,
         _device: &str,
         _is_multi: bool,
@@ -163,7 +162,6 @@ impl ActionHandler for ActionKey {
     fn on_key_up(
         &self,
         write: WriteSink,
-        _action: &str,
         context: &str,
         _device: &str,
         _is_multi: bool,
@@ -223,7 +221,6 @@ impl ActionHandler for ActionKey {
     fn on_did_receive_property_inspector_message(
         &self,
         write: WriteSink,
-        action: &str,
         context: &str,
         payload: &Value
     ) {
