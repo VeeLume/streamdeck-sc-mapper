@@ -64,6 +64,26 @@
           "Image": "imgs/binds/icon"
         }
       ]
+    },
+    {
+      "UUID": "icu.veelume.sc-mapper.toggleaction",
+      "Name": "Toggle Action",
+      "Icon": "imgs/actions/icon",
+      "Tooltip": "Generate Keybinds for actions",
+      "PropertyInspectorPath": "ui/toggle_action.html",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Name": "Press Action",
+          "Image": "imgs/action/icon"
+        },
+        {
+          "Name": "Release Action",
+          "Image": "imgs/action/icon"
+        }
+      ]
     }
   ]
 }

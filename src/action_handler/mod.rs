@@ -1,4 +1,5 @@
 use std::{ collections::HashMap };
+use serde::{Deserialize, Deserializer};
 use serde_json::Value;
 use websocket::{ OwnedMessage };
 
@@ -6,6 +7,49 @@ use crate::{ data_source::DataSourcePayload, plugin::WriteSink };
 
 pub mod generate_binds;
 pub mod sc_action;
+pub mod sc_toggle_action;
+
+pub fn string_or_integer_to_i64<'de, D>(deserializer: D) -> Result<i64, D::Error>
+    where D: Deserializer<'de>
+{
+    let value: Value = Deserialize::deserialize(deserializer)?;
+    match value {
+        Value::String(s) => s.parse::<i64>().map_err(serde::de::Error::custom),
+        Value::Number(n) => n.as_i64().ok_or_else(|| serde::de::Error::custom("Invalid number")),
+        _ => Err(serde::de::Error::custom("Expected string or number")),
+    }
+}
+
+pub fn string_or_integer_to_u64_opt<'de, D>(deserializer: D) -> Result<Option<u64>, D::Error>
+    where D: Deserializer<'de>
+{
+    // Deserialize the value as an Option<u64>, if the value is 0 it will be None
+    let value: Value = Deserialize::deserialize(deserializer)?;
+    match value {
+        Value::String(s) => s.parse::<u64>().map(
+            |n| if n == 0 { None } else { Some(n) }
+        ).map_err(serde::de::Error::custom),
+        Value::Number(n) => n.as_u64().map(
+            |n| if n == 0 { None } else { Some(n) }
+        ).ok_or_else(|| serde::de::Error::custom("Invalid number")),
+        Value::Null => Ok(None), // Allow null to be deserialized as None
+        _ => Err(serde::de::Error::custom("Expected string, number, or null")),
+    }
+}
+
+pub fn string_to_string_opt<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+    where D: Deserializer<'de>
+{
+    // Deserialize the value as an Option<String>, if the string is empty it will be None
+    let value: Value = Deserialize::deserialize(deserializer)?;
+    match value {
+        Value::String(s) => Ok(
+            if s.is_empty() { None } else { Some(s) }
+        ),
+        Value::Null => Ok(None),
+        _ => Err(serde::de::Error::custom("Expected string or null")),
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct KeyCoordinates {

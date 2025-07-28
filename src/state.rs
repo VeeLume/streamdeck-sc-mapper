@@ -5,7 +5,7 @@ use directories::BaseDirs;
 use regex::Regex;
 
 use crate::action_binds::constants::{ ACTION_MAP_UI_CATEGORIES, SKIP_ACTION_MAPS };
-use crate::data_source::DataSourceResult;
+use crate::data_source::{ DataSourceResult, Item, ItemGroup };
 use crate::logger::ActionLog;
 use crate::action_binds::action_bindings::ActionBindings;
 use crate::plugin::PLUGIN_UUID;
@@ -424,7 +424,12 @@ impl AppState {
         }
     }
 
-    pub fn send_key(&self, action_id: &str, hold_duration_override: Option<Duration>) -> Result<(), String> {
+    pub fn send_key(
+        &self,
+        action_id: &str,
+        hold_duration_override: Option<Duration>,
+        is_down_override: Option<bool>
+    ) -> Result<(), String> {
         let action_bindings = self.action_bindings
             .get(&GameInstallType::Live)
             .ok_or("No action bindings found for live game")?;
@@ -434,7 +439,66 @@ impl AppState {
             .ok_or_else(|| format!("Action '{}' not found", action_id))?;
 
         action
-            .simulate(Arc::clone(&self.logger), hold_duration_override)
+            .simulate(Arc::clone(&self.logger), hold_duration_override, is_down_override)
             .map_err(|e| format!("Simulation failed: {}", e))
+    }
+
+    pub fn get_actions(&mut self, ty: GameInstallType) -> Result<Vec<DataSourceResult>, ()> {
+        if let Some(Some(cached)) = self.cached_data_sources.get(&ty) {
+            self.logger.log("ℹ️ Returning cached actions");
+            return Ok(cached.clone());
+        }
+
+        self.logger.log("ℹ️ Generating actions from bindings");
+        let action_bindings = match self.action_bindings.get(&ty) {
+            Some(bindings) => bindings,
+            None => {
+                self.logger.log("❌ No action bindings found for Live");
+                return Err(());
+            }
+        };
+
+        let translations = &HashMap::new();
+        let translations = self.translations.get(&ty).unwrap_or_else(|| {
+            self.logger.log("❌ No translations found for Live");
+            &translations
+        });
+
+        let mut items = vec![
+            DataSourceResult::Item(Item {
+                value: "".to_string(),
+                label: Some("No Action".to_string()),
+                disabled: Some(false),
+            })
+        ];
+        items.extend(
+            action_bindings.action_maps.values().map(|action_map| {
+                DataSourceResult::ItemGroup(ItemGroup {
+                    label: action_map.get_label(translations),
+                    children: action_map.actions
+                        .values()
+                        .map(|action| {
+                            Item {
+                                disabled: Some(false),
+                                label: Some(
+                                    format!(
+                                        "{} [{}]",
+                                        action.get_label(translations),
+                                        action.get_binds_label().unwrap_or_default()
+                                    )
+                                ),
+                                value: action.action_id.clone(),
+                            }
+                        })
+                        .collect::<Vec<_>>(),
+                })
+            })
+        );
+
+        self.logger.log("✅ Actions generated successfully");
+
+        self.cached_data_sources.insert(ty, Some(items.clone()));
+
+        Ok(items)
     }
 }

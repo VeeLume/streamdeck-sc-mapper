@@ -4,7 +4,7 @@ use serde::{ Deserialize, Deserializer, Serialize };
 use serde_json::Value;
 use timer::{ Guard, Timer };
 use crate::{
-    action_handler::{ send_to_property_inspector, show_alert, ActionHandler, KeyCoordinates },
+    action_handler::{ send_to_property_inspector, show_alert, ActionHandler, KeyCoordinates, string_or_integer_to_i64, string_or_integer_to_u64_opt, string_to_string_opt },
     data_source::{ DataSourcePayload, DataSourceResult, Item, ItemGroup },
     logger::ActionLog,
     plugin::WriteSink,
@@ -12,47 +12,17 @@ use crate::{
     utils::get_locked_app_state,
 };
 
-fn string_or_integer_to_i64<'de, D>(deserializer: D) -> Result<i64, D::Error>
-    where D: Deserializer<'de>
-{
-    let value: Value = Deserialize::deserialize(deserializer)?;
-    match value {
-        Value::String(s) => s.parse::<i64>().map_err(serde::de::Error::custom),
-        Value::Number(n) => n.as_i64().ok_or_else(|| serde::de::Error::custom("Invalid number")),
-        _ => Err(serde::de::Error::custom("Expected string or number")),
-    }
-}
-
-fn string_or_integer_to_u64_opt<'de, D>(deserializer: D) -> Result<Option<u64>, D::Error>
-    where D: Deserializer<'de>
-{
-    // Deserialize the value as an Option<u64>, if the value is 0 it will be None
-    let value: Value = Deserialize::deserialize(deserializer)?;
-    match value {
-        Value::String(s) => s.parse::<u64>().map(
-            |n| if n == 0 { None } else { Some(n) }
-        ).map_err(serde::de::Error::custom),
-        Value::Number(n) => n.as_u64().map(
-            |n| if n == 0 { None } else { Some(n) }
-        ).ok_or_else(|| serde::de::Error::custom("Invalid number")),
-        Value::Null => Ok(None), // Allow null to be deserialized as None
-        _ => Err(serde::de::Error::custom("Expected string, number, or null")),
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Settings {
-    #[serde(default)]
-    enable_long_press: bool,
     // The long press period in milliseconds, default is 200ms, the json value is a string
-    #[serde(deserialize_with = "string_or_integer_to_i64", default)]
+    #[serde(default, deserialize_with = "string_or_integer_to_i64")]
     long_press_period: i64,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "string_to_string_opt")]
     action_short: Option<String>,
     #[serde(default, deserialize_with = "string_or_integer_to_u64_opt")]
     action_short_hold: Option<u64>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "string_to_string_opt")]
     action_long: Option<String>,
     #[serde(default, deserialize_with = "string_or_integer_to_u64_opt")]
     action_long_hold: Option<u64>,
@@ -63,7 +33,6 @@ impl Default for Settings {
         Self {
             action_short: None,
             action_short_hold: None,
-            enable_long_press: false,
             action_long: None,
             action_long_hold: None,
             long_press_period: 200,
@@ -129,7 +98,7 @@ impl ActionHandler for ActionKey {
             }
         };
 
-        if settings.enable_long_press && settings.action_long.is_some() {
+        if settings.action_long.is_some() {
             let logger = Arc::clone(&self.logger);
             let action_id = match settings.action_long {
                 Some(action) => action,
@@ -158,7 +127,7 @@ impl ActionHandler for ActionKey {
                         }
                     };
 
-                    if let Err(e) = state.send_key(&action_id, hold_duration_override) {
+                    if let Err(e) = state.send_key(&action_id, hold_duration_override, None) {
                         logger.log(&format!("❌ Failed to send long press key: {e}"));
                         show_alert(write, &context);
                     }
@@ -212,7 +181,7 @@ impl ActionHandler for ActionKey {
             };
             let hold_duration_override = settings.action_short_hold.map(|hold| std::time::Duration::from_millis(hold));
 
-            if let Err(e) = state.send_key(&action, hold_duration_override) {
+            if let Err(e) = state.send_key(&action, hold_duration_override, None) {
                 self.logger.log(&format!("❌ Failed to send short press key: {e}"));
                 show_alert(write, context);
             } else {
@@ -241,68 +210,20 @@ impl ActionHandler for ActionKey {
                     }
                 };
 
-                if
-                    let Some(cached) = state.cached_data_sources.get(&GameInstallType::Live) &&
-                    cached.is_some()
-                {
-                    self.logger.log("ℹ️ Using cached data sources for actions");
-                    send_to_property_inspector(write, context, DataSourcePayload {
-                        event: Some("getActions".to_string()),
-                        items: cached.clone().unwrap_or_else(|| vec![]),
-                    });
-                    return;
-                }
-
-                self.logger.log("ℹ️ Generating actions from bindings");
-                let action_bindings = match state.action_bindings.get(&GameInstallType::Live) {
-                    Some(bindings) => bindings,
-                    None => {
-                        self.logger.log("❌ No action bindings found for Live");
+                let items = match state.get_actions(GameInstallType::Live) {
+                    Ok(actions) => actions,
+                    Err(()) => {
+                        self.logger.log(&format!("❌ Failed to get actions"));
                         show_alert(write, context);
                         return;
                     }
                 };
 
-                let translations = match state.translations.get(&GameInstallType::Live) {
-                    Some(translations) => translations,
-                    None => {
-                        self.logger.log("❌ No translations found for Live");
-                        &HashMap::new()
-                    }
-                };
 
-                let items = action_bindings.action_maps
-                    .values()
-                    .map(|action_map| {
-                        DataSourceResult::ItemGroup(ItemGroup {
-                            label: action_map.get_label(translations),
-                            children: action_map.actions
-                                .values()
-                                .map(|action| {
-                                    Item {
-                                        disabled: Some(false),
-                                        label: Some(
-                                            format!(
-                                                "{} [{}]",
-                                                action.get_label(translations),
-                                                action.get_binds_label().unwrap_or_default()
-                                            )
-                                        ),
-                                        value: action.action_id.clone(),
-                                    }
-                                })
-                                .collect::<Vec<_>>(),
-                        })
-                    })
-                    .collect::<Vec<_>>();
-
-                self.logger.log("✅ Actions generated successfully");
                 send_to_property_inspector(write, context, DataSourcePayload {
                     event: Some("getActions".to_string()),
-                    items: items.clone(),
+                    items: items
                 });
-                state.cached_data_sources.insert(GameInstallType::Live, Some(items));
-                self.logger.log("✅ Cached actions for future use");
             }
             _ => {
                 self.logger.log(

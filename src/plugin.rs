@@ -5,6 +5,7 @@ use once_cell::sync::OnceCell;
 use websocket::{ ClientBuilder, OwnedMessage };
 
 use crate::action_handler::sc_action::ActionKey;
+use crate::action_handler::sc_toggle_action::ActionToggleKey;
 use crate::{
     action_handler::{ generate_binds::GenerateBindsKey, ActionHandler },
     logger::ActionLog,
@@ -78,14 +79,18 @@ pub fn run_plugin(
 
     logger.log("📨 Sent registration event to Stream Deck");
 
-    let action_handlers: HashMap<String, Arc<dyn ActionHandler>> = HashMap::from([
+    let action_handlers: HashMap<&str, Arc<dyn ActionHandler>> = HashMap::from([
         (
-            GenerateBindsKey::ACTION_NAME.to_string(),
+            GenerateBindsKey::ACTION_NAME,
             Arc::new(GenerateBindsKey::new(Arc::clone(&logger))) as Arc<dyn ActionHandler>,
         ),
         (
-            ActionKey::ACTION_NAME.to_string(),
+            ActionKey::ACTION_NAME,
             Arc::new(ActionKey::new(Arc::clone(&logger))) as Arc<dyn ActionHandler>,
+        ),
+        (
+            ActionToggleKey::ACTION_NAME,
+            Arc::new(ActionToggleKey::new(Arc::clone(&logger))) as Arc<dyn ActionHandler>,
         ),
         // Add more handlers here
     ]);

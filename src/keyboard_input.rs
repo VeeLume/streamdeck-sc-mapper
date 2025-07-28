@@ -8,7 +8,7 @@ use crate::{
 };
 
 impl ActionBinding {
-    pub fn simulate(&self, logger: Arc<dyn ActionLog>, hold_duration_override: Option<Duration>) -> Result<(), String> {
+    pub fn simulate(&self, logger: Arc<dyn ActionLog>, hold_duration_override: Option<Duration>, is_down_override: Option<bool>) -> Result<(), String> {
         let bind = {
             let custom = self.custom_binds.as_ref().and_then(|b| b.keyboard.first().cloned());
             match custom.or_else(|| { self.default_binds.keyboard.first().cloned() }) {
@@ -39,7 +39,7 @@ impl ActionBinding {
         if mode.multi_tap == MultiTap::Two {
             logger.log("ℹ️ Sending multi-tap key action");
             for _ in 0..2 {
-                if let Err(e) = send_input_combo(&bind, None) {
+                if let Err(e) = send_input_combo(&bind, None, is_down_override) {
                     return Err(format!("Failed to send multi-tap key: {}", e));
                 }
                 thread::sleep(Duration::from_millis(25));
@@ -59,20 +59,20 @@ impl ActionBinding {
             });
             duration = duration + Duration::from_millis(50); // Add a small buffer to ensure the hold is registered
             logger.log(&format!("⏳ Holding key for {} ms", duration.as_millis()));
-            return send_input_combo(&bind, Some(duration));
+            return send_input_combo(&bind, Some(duration), is_down_override);
         }
 
         if mode.on_release && !mode.on_hold && !mode.on_press {
             logger.log("ℹ️ Sending key release only, no hold or press action defined");
-            return send_input_combo(&bind, None);
+            return send_input_combo(&bind, None, is_down_override);
         }
 
         logger.log("ℹ️ Sending key press action");
-        return send_input_combo(&bind, None);
+        return send_input_combo(&bind, None, is_down_override);
     }
 }
 
-fn send_input_combo(bind: &Bind, hold: Option<Duration>) -> Result<(), String> {
+fn send_input_combo(bind: &Bind, hold: Option<Duration>, is_down_override: Option<bool>) -> Result<(), String> {
     let mut down_events: Vec<INPUT> = Vec::new();
     let mut up_events: Vec<INPUT> = Vec::new();
 
@@ -89,12 +89,24 @@ fn send_input_combo(bind: &Bind, hold: Option<Duration>) -> Result<(), String> {
         let main_down: INPUT = build_input(scan, true, is_extended_key(&bind.mainkey));
         let main_up: INPUT = build_input(scan, false, is_extended_key(&bind.mainkey));
 
-        if let Some(dur) = hold {
-            send_events([down_events.as_slice(), &[main_down]].concat().as_slice());
-            thread::sleep(dur);
-            send_events([up_events.as_slice(), &[main_up]].concat().as_slice());
-        } else {
-            send_events([down_events.as_slice(), &[main_down, main_up], up_events.as_slice()].concat().as_slice());
+        match is_down_override {
+            Some(true) => {
+                send_events([down_events.as_slice(), &[main_down]].concat().as_slice());
+                return Ok(());
+            }
+            Some(false) => {
+                send_events([up_events.as_slice(), &[main_up]].concat().as_slice());
+                return Ok(());
+            }
+            None => {
+                if let Some(dur) = hold {
+                    send_events([down_events.as_slice(), &[main_down]].concat().as_slice());
+                    thread::sleep(dur);
+                    send_events([up_events.as_slice(), &[main_up]].concat().as_slice());
+                } else {
+                    send_events([down_events.as_slice(), &[main_down, main_up], up_events.as_slice()].concat().as_slice());
+                }
+            }
         }
     } else {
         return Err(format!("Unknown main key: {}", bind.mainkey));
