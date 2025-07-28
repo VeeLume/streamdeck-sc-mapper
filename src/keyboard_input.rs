@@ -8,7 +8,7 @@ use crate::{
 };
 
 impl ActionBinding {
-    pub fn simulate(&self, logger: Arc<dyn ActionLog>) -> Result<(), String> {
+    pub fn simulate(&self, logger: Arc<dyn ActionLog>, hold_duration_override: Option<Duration>) -> Result<(), String> {
         let bind = {
             let custom = self.custom_binds.as_ref().and_then(|b| b.keyboard.first().cloned());
             match custom.or_else(|| { self.default_binds.keyboard.first().cloned() }) {
@@ -48,18 +48,18 @@ impl ActionBinding {
         }
 
         if mode.on_hold || mode.press_trigger_threshold > Some(0.0) {
-            let mut delay_ms = {
+            let mut duration = hold_duration_override.unwrap_or_else(|| {
                 if let Some(threshold) = mode.press_trigger_threshold {
-                    if threshold > 0.0 { (threshold * 1000.0) as u64 } else { 260 }
+                    if threshold > 0.0 { Duration::from_millis((threshold * 1000.0) as u64) } else { Duration::from_millis(260) }
                 } else if let Some(delay) = mode.hold_trigger_delay {
-                    if delay > 0.0 { (delay * 1000.0) as u64 } else { 260 }
+                    if delay > 0.0 { Duration::from_millis((delay * 1000.0) as u64) } else { Duration::from_millis(260) }
                 } else {
-                    260
+                    Duration::from_millis(260)
                 }
-            };
-            delay_ms = delay_ms + 50;
-            logger.log(&format!("⏳ Holding key for {} ms", delay_ms));
-            return send_input_combo(&bind, Some(Duration::from_millis(delay_ms)));
+            });
+            duration = duration + Duration::from_millis(50); // Add a small buffer to ensure the hold is registered
+            logger.log(&format!("⏳ Holding key for {} ms", duration.as_millis()));
+            return send_input_combo(&bind, Some(duration));
         }
 
         if mode.on_release && !mode.on_hold && !mode.on_press {
@@ -227,7 +227,9 @@ static SCAN_CODE_MAP: Lazy<HashMap<&'static str, u16>> = Lazy::new(|| {
         ("escape", 0x01),
         ("backspace", 0x0e),
         ("[", 0x1a),
+        ("lbracket", 0x1A),
         ("]", 0x1b),
+        ("rbracket", 0x1B),
         ("comma", 0x33),
         ("semicolon", 0x27),
         ("apostrophe", 0x28),

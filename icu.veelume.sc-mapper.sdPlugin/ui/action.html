@@ -16,8 +16,16 @@
             placeholder="Select an action">
         </sdpi-select>
     </sdpi-item>
+    <sdpi-item label="Short Hold Override">
+        <sdpi-textfield setting="actionShortHold" pattern="^[0-9]+$" placeholder="Enter hold duration in ms">
+        </sdpi-textfield>
+    </sdpi-item>
     <sdpi-item label="Enable Long Press">
         <sdpi-checkbox setting="enableLongPress" label="Enable Long Press Action">
+    </sdpi-item>
+    <sdpi-item label="Hold Duration for Long Press">
+        <sdpi-textfield setting="longPressPeriod" pattern="^[0-9]+$" placeholder="Enter period in ms (default: 200)">
+        </sdpi-textfield>
     </sdpi-item>
     <sdpi-item label="Action Identifier">
         <sdpi-textfield setting="actionLong" disabled>
@@ -28,10 +36,9 @@
             placeholder="Select an action">
         </sdpi-select>
     </sdpi-item>
-    <sdpi-item label="Long Press Period">
-        <sdpi-textfield setting="longPressPeriod" pattern="^[0-9]+$" placeholder="Enter period in ms (default: 200)">
+    <sdpi-item label="Long Hold Override">
+        <sdpi-textfield setting="actionLongHold" pattern="^[0-9]+$" placeholder="Enter hold duration in ms">
         </sdpi-textfield>
-    </sdpi-item>
 </body>
 
 </html>

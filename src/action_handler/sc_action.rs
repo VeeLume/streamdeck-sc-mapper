@@ -23,6 +23,18 @@ fn string_or_integer_to_i64<'de, D>(deserializer: D) -> Result<i64, D::Error>
     }
 }
 
+fn string_or_integer_to_u64_opt<'de, D>(deserializer: D) -> Result<Option<u64>, D::Error>
+    where D: Deserializer<'de>
+{
+    let value: Value = Deserialize::deserialize(deserializer)?;
+    match value {
+        Value::Null => Ok(None),
+        Value::String(s) => s.parse::<u64>().map(Some).map_err(serde::de::Error::custom),
+        Value::Number(n) => n.as_u64().map(Some).ok_or_else(|| serde::de::Error::custom("Invalid number")),
+        _ => Err(serde::de::Error::custom("Expected null, string, or number")),
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Settings {
@@ -33,16 +45,22 @@ struct Settings {
     long_press_period: i64,
     #[serde(default)]
     action_short: Option<String>,
+    #[serde(default, deserialize_with = "string_or_integer_to_u64_opt")]
+    action_short_hold: Option<u64>,
     #[serde(default)]
     action_long: Option<String>,
+    #[serde(default, deserialize_with = "string_or_integer_to_u64_opt")]
+    action_long_hold: Option<u64>,
 }
 
 impl Default for Settings {
     fn default() -> Self {
         Self {
             action_short: None,
+            action_short_hold: None,
             enable_long_press: false,
             action_long: None,
+            action_long_hold: None,
             long_press_period: 200,
         }
     }
@@ -115,6 +133,7 @@ impl ActionHandler for ActionKey {
                     return;
                 }
             };
+            let hold_duration_override = settings.action_long_hold.map(|hold| std::time::Duration::from_millis(hold));
             let context = context.to_string();
             let long_fired = Arc::clone(&self.long_fired);
 
@@ -134,7 +153,7 @@ impl ActionHandler for ActionKey {
                         }
                     };
 
-                    if let Err(e) = state.send_key(&action_id) {
+                    if let Err(e) = state.send_key(&action_id, hold_duration_override) {
                         logger.log(&format!("❌ Failed to send long press key: {e}"));
                         show_alert(write, &context);
                     }
@@ -186,8 +205,9 @@ impl ActionHandler for ActionKey {
                     return;
                 }
             };
+            let hold_duration_override = settings.action_short_hold.map(|hold| std::time::Duration::from_millis(hold));
 
-            if let Err(e) = state.send_key(&action) {
+            if let Err(e) = state.send_key(&action, hold_duration_override) {
                 self.logger.log(&format!("❌ Failed to send short press key: {e}"));
                 show_alert(write, context);
             } else {
@@ -221,7 +241,6 @@ impl ActionHandler for ActionKey {
                     cached.is_some()
                 {
                     self.logger.log("ℹ️ Using cached data sources for actions");
-                    self.logger.log(&format!("{} actions found", cached.as_ref().unwrap().len()));
                     send_to_property_inspector(write, context, DataSourcePayload {
                         event: Some("getActions".to_string()),
                         items: cached.clone().unwrap_or_else(|| vec![]),
@@ -273,7 +292,6 @@ impl ActionHandler for ActionKey {
                     .collect::<Vec<_>>();
 
                 self.logger.log("✅ Actions generated successfully");
-                self.logger.log(&format!("{} actions found", items.len()));
                 send_to_property_inspector(write, context, DataSourcePayload {
                     event: Some("getActions".to_string()),
                     items: items.clone(),

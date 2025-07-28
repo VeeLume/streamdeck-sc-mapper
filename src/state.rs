@@ -1,3 +1,4 @@
+use std::time::Duration;
 use std::{ env, fs };
 use std::{ collections::HashMap, path::PathBuf, sync::Arc };
 use directories::BaseDirs;
@@ -423,7 +424,7 @@ impl AppState {
         }
     }
 
-    pub fn send_key(&self, action_id: &str) -> Result<(), String> {
+    pub fn send_key(&self, action_id: &str, hold_duration_override: Option<Duration>) -> Result<(), String> {
         let action_bindings = self.action_bindings
             .get(&GameInstallType::Live)
             .ok_or("No action bindings found for live game")?;
@@ -433,7 +434,7 @@ impl AppState {
             .ok_or_else(|| format!("Action '{}' not found", action_id))?;
 
         action
-            .simulate(Arc::clone(&self.logger))
+            .simulate(Arc::clone(&self.logger), hold_duration_override)
             .map_err(|e| format!("Simulation failed: {}", e))
     }
 }
