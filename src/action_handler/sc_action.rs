@@ -26,12 +26,17 @@ fn string_or_integer_to_i64<'de, D>(deserializer: D) -> Result<i64, D::Error>
 fn string_or_integer_to_u64_opt<'de, D>(deserializer: D) -> Result<Option<u64>, D::Error>
     where D: Deserializer<'de>
 {
+    // Deserialize the value as an Option<u64>, if the value is 0 it will be None
     let value: Value = Deserialize::deserialize(deserializer)?;
     match value {
-        Value::Null => Ok(None),
-        Value::String(s) => s.parse::<u64>().map(Some).map_err(serde::de::Error::custom),
-        Value::Number(n) => n.as_u64().map(Some).ok_or_else(|| serde::de::Error::custom("Invalid number")),
-        _ => Err(serde::de::Error::custom("Expected null, string, or number")),
+        Value::String(s) => s.parse::<u64>().map(
+            |n| if n == 0 { None } else { Some(n) }
+        ).map_err(serde::de::Error::custom),
+        Value::Number(n) => n.as_u64().map(
+            |n| if n == 0 { None } else { Some(n) }
+        ).ok_or_else(|| serde::de::Error::custom("Invalid number")),
+        Value::Null => Ok(None), // Allow null to be deserialized as None
+        _ => Err(serde::de::Error::custom("Expected string, number, or null")),
     }
 }
 
