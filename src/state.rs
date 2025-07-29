@@ -60,7 +60,6 @@ pub struct AppState {
 
     pub game_paths: HashMap<GameInstallType, Option<PathBuf>>,
     pub action_bindings: HashMap<GameInstallType, ActionBindings>,
-    pub translations: HashMap<GameInstallType, HashMap<String, String>>,
     pub cached_data_sources: HashMap<GameInstallType, Option<Vec<DataSourceResult>>>,
 }
 
@@ -72,10 +71,6 @@ impl AppState {
 
         let action_bindings = GameInstallType::ALL.iter()
             .map(|&ty| (ty, ActionBindings::new(Arc::clone(&logger))))
-            .collect();
-
-        let translations = GameInstallType::ALL.iter()
-            .map(|&ty| (ty, HashMap::new()))
             .collect();
 
         let cached_data_sources = GameInstallType::ALL.iter()
@@ -106,7 +101,6 @@ impl AppState {
             logger,
             game_paths,
             action_bindings,
-            translations,
             cached_data_sources,
         })
     }
@@ -118,8 +112,17 @@ impl AppState {
         self.logger.log(&format!("📂 Game paths: {:?}", self.game_paths));
 
         for ty in GameInstallType::ALL {
+            if
+                self.game_paths
+                    .get(&ty)
+                    .is_some_and(
+                        |path| (path.is_none() || path.as_ref().map_or(false, |p| !p.exists()))
+                    )
+            {
+                self.logger.log(&format!("❌ No game path found for {:?}", ty));
+                continue;
+            }
             self.logger.log(&format!("🔄 Loading data for {:?}", ty));
-            self.load_translations(ty);
             self.load_action_bindings(ty);
         }
     }
@@ -185,19 +188,14 @@ impl AppState {
         self.logger.log(&format!("✅ Loaded game paths: {:?}", self.game_paths));
     }
 
-    pub fn load_translations(&mut self, ty: GameInstallType) {
-        if self.game_paths.get(&ty).is_none() {
-            self.logger.log(&format!("❌ No game path found for {:?}", ty));
-            return;
-        }
-
+    pub fn get_translations(&self, ty: GameInstallType) -> HashMap<String, String> {
         let translation_file = self.resource_dir.join("global.ini");
 
         if !fs::exists(&translation_file).unwrap_or(false) {
             self.logger.log(
                 &format!("⚠️ Translation file not found at {}", translation_file.display())
             );
-            return;
+            return HashMap::new();
         }
 
         let content = {
@@ -205,7 +203,7 @@ impl AppState {
                 Ok(content) => content,
                 Err(e) => {
                     self.logger.log(&format!("❌ Failed to read translation file: {e}"));
-                    return;
+                    return HashMap::new();
                 }
             }
         };
@@ -223,16 +221,11 @@ impl AppState {
             }
         }
 
-        self.translations.insert(ty, translations);
         self.logger.log(&format!("🈯 Translations for {:?} loaded", ty));
+        return translations;
     }
 
     pub fn load_action_bindings(&mut self, ty: GameInstallType) {
-        if self.game_paths.get(&ty).is_none() {
-            self.logger.log(&format!("❌ No game path found for {:?}", ty));
-            return;
-        }
-
         let bindings_file = {
             match get_appdata_dir() {
                 Ok(base) => {
@@ -458,11 +451,7 @@ impl AppState {
             }
         };
 
-        let translations = &HashMap::new();
-        let translations = self.translations.get(&ty).unwrap_or_else(|| {
-            self.logger.log("❌ No translations found for Live");
-            &translations
-        });
+        let translations = self.get_translations(ty);
 
         let mut items = vec![
             DataSourceResult::Item(Item {
@@ -474,7 +463,7 @@ impl AppState {
         items.extend(
             action_bindings.action_maps.values().map(|action_map| {
                 DataSourceResult::ItemGroup(ItemGroup {
-                    label: action_map.get_label(translations),
+                    label: action_map.get_label(&translations),
                     children: action_map.actions
                         .values()
                         .map(|action| {
@@ -483,7 +472,7 @@ impl AppState {
                                 label: Some(
                                     format!(
                                         "{} [{}]",
-                                        action.get_label(translations),
+                                        action.get_label(&translations),
                                         action.get_binds_label().unwrap_or_default()
                                     )
                                 ),
