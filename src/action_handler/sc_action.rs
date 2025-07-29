@@ -4,7 +4,15 @@ use serde::{ Deserialize, Serialize };
 use serde_json::Value;
 use timer::{ Guard, Timer };
 use crate::{
-    action_handler::{ send_to_property_inspector, show_alert, ActionHandler, KeyCoordinates, string_or_integer_to_i64, string_or_integer_to_u64_opt, string_to_string_opt },
+    action_handler::{
+        send_to_property_inspector,
+        show_alert,
+        ActionHandler,
+        KeyCoordinates,
+        string_or_integer_to_i64_opt,
+        string_or_integer_to_u64_opt,
+        string_to_string_opt,
+    },
     data_source::DataSourcePayload,
     logger::ActionLog,
     plugin::WriteSink,
@@ -16,8 +24,8 @@ use crate::{
 #[serde(rename_all = "camelCase")]
 struct Settings {
     // The long press period in milliseconds, default is 200ms, the json value is a string
-    #[serde(default, deserialize_with = "string_or_integer_to_i64")]
-    long_press_period: i64,
+    #[serde(default, deserialize_with = "string_or_integer_to_i64_opt")]
+    long_press_period: Option<i64>,
     #[serde(default, deserialize_with = "string_to_string_opt")]
     action_short: Option<String>,
     #[serde(default, deserialize_with = "string_or_integer_to_u64_opt")]
@@ -35,17 +43,17 @@ impl Default for Settings {
             action_short_hold: None,
             action_long: None,
             action_long_hold: None,
-            long_press_period: 200,
+            long_press_period: None,
         }
     }
 }
 
 impl Settings {
     pub fn from_json(map: &serde_json::Map<String, Value>) -> Result<Self, String> {
-        let json = serde_json::to_value(map)
+        let json = serde_json
+            ::to_value(map)
             .map_err(|e| format!("Failed to convert settings to JSON: {}", e))?;
-        serde_json::from_value(json)
-            .map_err(|e| format!("Failed to deserialize settings: {}", e))
+        serde_json::from_value(json).map_err(|e| format!("Failed to deserialize settings: {}", e))
     }
 
     pub fn to_json(&self) -> serde_json::Map<String, Value> {
@@ -107,12 +115,14 @@ impl ActionHandler for ActionKey {
                     return;
                 }
             };
-            let hold_duration_override = settings.action_long_hold.map(|hold| std::time::Duration::from_millis(hold));
+            let hold_duration_override = settings.action_long_hold.map(|hold|
+                std::time::Duration::from_millis(hold)
+            );
             let context = context.to_string();
             let long_fired = Arc::clone(&self.long_fired);
 
             let guard = self.timer.schedule_with_delay(
-                Duration::milliseconds(settings.long_press_period),
+                Duration::milliseconds(settings.long_press_period.unwrap_or(200)),
                 move || {
                     long_fired.store(true, Ordering::SeqCst);
                     logger.log("👉 Long press detected, executing long action");
@@ -179,7 +189,9 @@ impl ActionHandler for ActionKey {
                     return;
                 }
             };
-            let hold_duration_override = settings.action_short_hold.map(|hold| std::time::Duration::from_millis(hold));
+            let hold_duration_override = settings.action_short_hold.map(|hold|
+                std::time::Duration::from_millis(hold)
+            );
 
             if let Err(e) = state.send_key(&action, hold_duration_override, None) {
                 self.logger.log(&format!("❌ Failed to send short press key: {e}"));
@@ -219,10 +231,9 @@ impl ActionHandler for ActionKey {
                     }
                 };
 
-
                 send_to_property_inspector(write, context, DataSourcePayload {
                     event: Some("getActions".to_string()),
-                    items: items
+                    items: items,
                 });
             }
             _ => {

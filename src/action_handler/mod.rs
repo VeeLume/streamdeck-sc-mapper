@@ -9,13 +9,22 @@ pub mod generate_binds;
 pub mod sc_action;
 pub mod sc_toggle_action;
 
-pub fn string_or_integer_to_i64<'de, D>(deserializer: D) -> Result<i64, D::Error>
+pub fn string_or_integer_to_i64_opt<'de, D>(deserializer: D) -> Result<Option<i64>, D::Error>
     where D: Deserializer<'de>
 {
     let value: Value = Deserialize::deserialize(deserializer)?;
     match value {
-        Value::String(s) => s.parse::<i64>().map_err(serde::de::Error::custom),
-        Value::Number(n) => n.as_i64().ok_or_else(|| serde::de::Error::custom("Invalid number")),
+        Value::String(s) => {
+            match s.is_empty() {
+                true => Ok(None),
+                false => s.parse::<i64>()
+                    .map(Some)
+                    .map_err(serde::de::Error::custom)
+            }
+        }
+        Value::Number(n) => n.as_i64()
+            .map(Some)
+            .ok_or_else(|| serde::de::Error::custom("Invalid number")),
         _ => Err(serde::de::Error::custom("Expected string or number")),
     }
 }
