@@ -72,7 +72,7 @@ pub struct ScAction {
 }
 
 impl ActionStatic for ScAction {
-    const ID: &'static str = concat!(PLUGIN_ID, ".sc-action");
+    const ID: &'static str = concat!(PLUGIN_ID, ".action");
 }
 
 impl Action for ScAction {
