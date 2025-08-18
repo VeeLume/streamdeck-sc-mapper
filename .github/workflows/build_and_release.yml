@@ -21,13 +21,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Extract version from tag
+      - name: Extract version (major.minor.patch.build)
         id: version
         shell: pwsh
         run: |
           $tag="${env:GITHUB_REF_NAME}".TrimStart("v")   # e.g. 1.2.3
-          $build="1"
-          $full="$tag.$build"                            # e.g. 1.2.3.1 (use if you like)
+          $build="${{ github.run_number }}"              # monotonically increasing per repo
+          $full="$tag.$build"                            # e.g. 1.2.3.418
           "tag=$tag"   | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           "build=$build" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           "full=$full" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
@@ -37,6 +37,19 @@ jobs:
 
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
+
+      - name: Verify Cargo version matches tag
+        shell: pwsh
+        run: |
+          $meta = cargo metadata --no-deps --format-version 1 | Out-String | ConvertFrom-Json
+          $root = $meta.packages | Where-Object { $_.manifest_path -eq (Resolve-Path .\Cargo.toml).Path }
+          if (-not $root) { throw "Could not detect crate" }
+          $cargoVer = $root.version
+          $tagVer = "${{ steps.version.outputs.tag }}"
+          if ($cargoVer -ne $tagVer) {
+            throw "Cargo.toml version ($cargoVer) != tag ($tagVer)"
+          }
+
 
       - name: Build (release)
         shell: pwsh
@@ -61,17 +74,18 @@ jobs:
           if (!(Test-Path $src)) { throw "Missing built exe at $src" }
           Copy-Item $src "$env:PLUGIN_BUNDLE\$env:BINARY_DST" -Force
 
-      - name: Sync manifest version to tag
+      - name: Sync manifest version to tag+build
         shell: pwsh
         run: |
           $manifest = Join-Path $env:PLUGIN_BUNDLE 'manifest.json'
           if (Test-Path $manifest) {
             $j = Get-Content $manifest -Raw | ConvertFrom-Json
-            $j.Version = "${{ steps.version.outputs.full }}"
+            $j.Version = "${{ steps.version.outputs.full }}"  # 1.2.3.418
             $j | ConvertTo-Json -Depth 64 | Set-Content $manifest -Encoding UTF8
           } else {
-            Write-Host "No manifest.json found at $manifest (skipping)"
+            Write-Host "No manifest.json at $manifest (skipping)"
           }
+
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
