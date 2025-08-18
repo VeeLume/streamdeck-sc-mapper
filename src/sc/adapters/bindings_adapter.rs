@@ -1,23 +1,20 @@
-use std::{ collections::HashMap, sync::Arc };
 use chrono::Local;
-use crossbeam_channel::{ bounded, select, Receiver as CbReceiver };
+use crossbeam_channel::{Receiver as CbReceiver, bounded, select};
+use std::{collections::HashMap, sync::Arc};
 use streamdeck_lib::prelude::*;
 
+use crate::sc::shared::{ActiveInstall, GameInstallType, InstallPaths, ResourceDir, appdata_dir};
 use crate::{
+    PLUGIN_ID,
     bindings::{
-        action_bindings::{ ActionBindings, ActionBindingsStore },
-        constants::{ ACTION_MAP_UI_CATEGORIES, SKIP_ACTION_MAPS },
+        action_bindings::{ActionBindings, ActionBindingsStore},
+        constants::{ACTION_MAP_UI_CATEGORIES, SKIP_ACTION_MAPS},
     },
     sc::topics::{
-        ACTIONS_REQUEST,
-        BINDINGS_PARSED,
-        BINDINGS_REBUILD_AND_SAVE,
-        INITIAL_INSTALL_SCAN_DONE,
+        ACTIONS_REQUEST, BINDINGS_PARSED, BINDINGS_REBUILD_AND_SAVE, INITIAL_INSTALL_SCAN_DONE,
         INSTALL_ACTIVE_CHANGED,
     },
-    PLUGIN_ID,
 };
-use crate::sc::shared::{ appdata_dir, ActiveInstall, GameInstallType, InstallPaths, ResourceDir };
 
 pub struct BindingsAdapter {
     /// used for AppData/bindings_<ty>.json and for controls/mappings/<PLUGIN_ID>.xml
@@ -56,7 +53,7 @@ impl Adapter for BindingsAdapter {
         &self,
         cx: &Context,
         bus: Arc<dyn Bus>,
-        inbox: CbReceiver<Arc<ErasedTopic>>
+        inbox: CbReceiver<Arc<ErasedTopic>>,
     ) -> AdapterResult {
         let (stop_tx, stop_rx) = bounded::<()>(1);
         let logger = cx.log().clone();
@@ -67,7 +64,9 @@ impl Adapter for BindingsAdapter {
             .clone();
         let store = cx
             .try_ext::<ActionBindingsStore>()
-            .ok_or(AdapterError::Init("ActionBindingsStore ext missing".to_string()))?
+            .ok_or(AdapterError::Init(
+                "ActionBindingsStore ext missing".to_string(),
+            ))?
             .clone();
         let res_dir = cx
             .try_ext::<ResourceDir>()
@@ -221,7 +220,7 @@ impl Adapter for BindingsAdapter {
 
 pub fn load_translations(
     path: std::path::PathBuf,
-    logger: &Arc<dyn ActionLog>
+    logger: &Arc<dyn ActionLog>,
 ) -> HashMap<String, String> {
     if !path.try_exists().unwrap_or(false) {
         warn!(logger, "no translations at {}", path.display());
@@ -269,7 +268,7 @@ fn parse_xml(
     resource_dir: &std::path::Path,
     ty: GameInstallType,
     with_custom: bool,
-    logger: &Arc<dyn ActionLog>
+    logger: &Arc<dyn ActionLog>,
 ) -> Option<ActionBindings> {
     let default_profile = resource_dir.join("defaultProfile.xml");
     let custom_file = if with_custom {
@@ -280,7 +279,7 @@ fn parse_xml(
                 .join("0")
                 .join("Profiles")
                 .join("default")
-                .join("actionmaps.xml")
+                .join("actionmaps.xml"),
         )
     } else {
         None
@@ -292,7 +291,7 @@ fn parse_xml(
             &default_profile,
             &SKIP_ACTION_MAPS,
             &ACTION_MAP_UI_CATEGORIES,
-            logger
+            logger,
         )
         .ok();
 
@@ -315,18 +314,16 @@ fn parse_xml(
 
 fn load_from_json(
     ty: GameInstallType,
-    logger: &Arc<dyn ActionLog>
+    logger: &Arc<dyn ActionLog>,
 ) -> Result<ActionBindings, String> {
-    let base = appdata_dir(PLUGIN_ID).map_err(|e|
-        format!("Failed to get AppData directory: {e}")
-    )?;
+    let base =
+        appdata_dir(PLUGIN_ID).map_err(|e| format!("Failed to get AppData directory: {e}"))?;
     let file = base.join(format!("bindings_{}.json", ty.name()));
     if !file.try_exists().unwrap_or(false) {
         return Err(format!("No bindings file found at {}", file.display()));
     }
-    let content = std::fs
-        ::read_to_string(&file)
-        .map_err(|e| format!("Failed to read bindings file: {e}"))?;
+    let content =
+        std::fs::read_to_string(&file).map_err(|e| format!("Failed to read bindings file: {e}"))?;
     let ab = ActionBindings::from_json(&content, logger)?;
     info!(
         logger,
@@ -344,7 +341,7 @@ fn save(
     profile_name: Option<String>,
     plugin_id: &str,
     ty: GameInstallType,
-    logger: &Arc<dyn ActionLog>
+    logger: &Arc<dyn ActionLog>,
 ) {
     // write profile.xml …
     let profile_dir = game_path
@@ -356,7 +353,12 @@ fn save(
 
     let _ = std::fs::create_dir_all(&profile_dir);
     let profile_name = profile_name.unwrap_or_else(|| {
-        format!("{}-{}-{}", "SC-Mapper", ty.name(), Local::now().format("%Y%m%d-%H:%M"))
+        format!(
+            "{}-{}-{}",
+            "SC-Mapper",
+            ty.name(),
+            Local::now().format("%Y%m%d-%H:%M")
+        )
     });
 
     let profile_path = profile_dir.join(format!("{PLUGIN_ID}.xml"));
@@ -366,16 +368,14 @@ fn save(
         info!(logger, "wrote profile {}", profile_path.display());
     }
 
-    if
-        let Err(e) = ab.to_json().and_then(|json| {
-            if let Ok(base) = appdata_dir(plugin_id) {
-                let f = base.join(format!("bindings_{}.json", ty.name()));
-                Ok(std::fs::write(&f, json))
-            } else {
-                Err("Failed to get AppData directory".to_string())
-            }
-        })
-    {
+    if let Err(e) = ab.to_json().and_then(|json| {
+        if let Ok(base) = appdata_dir(plugin_id) {
+            let f = base.join(format!("bindings_{}.json", ty.name()));
+            Ok(std::fs::write(&f, json))
+        } else {
+            Err("Failed to get AppData directory".to_string())
+        }
+    }) {
         warn!(logger, "Failed to write JSON: {}", e);
     } else {
         info!(logger, "Wrote bindings_{}.json", ty.name());

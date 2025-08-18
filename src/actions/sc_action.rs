@@ -1,33 +1,44 @@
 // src/actions/sc_action.rs
-use std::{ sync::{ atomic::{ AtomicBool, Ordering }, Arc }, thread, time::{ Duration, Instant } };
 use constcat::concat;
-use serde::{ Deserialize, Serialize };
-use serde_json::{ json, Map, Value };
+use serde::{Deserialize, Serialize};
+use serde_json::{Map, Value, json};
+use std::{
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
+    thread,
+    time::{Duration, Instant},
+};
 use streamdeck_lib::prelude::*;
 
-use crate::{
-    bindings::{ action_bindings::ActionBindingsStore },
-    data_source::{ DataSourceResult, Item, ItemGroup },
-    sc::{
-        adapters::bindings_adapter::{ load_translations },
-        shared::{ ResourceDir },
-        topics::{ ExecSend },
-    },
-    serde_helpers::{ opt_u64_from_str_or_num, u64_from_str_or_num_default_200 },
-};
-use crate::sc::topics::{ ACTIONS_CACHE_UPDATED, EXEC_SEND };
 use crate::PLUGIN_ID;
+use crate::sc::topics::{ACTIONS_CACHE_UPDATED, EXEC_SEND};
+use crate::{
+    bindings::action_bindings::ActionBindingsStore,
+    data_source::{DataSourceResult, Item, ItemGroup},
+    sc::{adapters::bindings_adapter::load_translations, shared::ResourceDir, topics::ExecSend},
+    serde_helpers::{opt_u64_from_str_or_num, u64_from_str_or_num_default_200},
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct ScActionSettings {
     #[serde(rename = "actionShort", default)]
     short_id: Option<String>,
-    #[serde(rename = "actionShortHold", deserialize_with = "opt_u64_from_str_or_num", default)]
+    #[serde(
+        rename = "actionShortHold",
+        deserialize_with = "opt_u64_from_str_or_num",
+        default
+    )]
     short_hold_ms: Option<u64>,
     #[serde(rename = "actionLong", default)]
     long_id: Option<String>,
-    #[serde(rename = "actionLongHold", deserialize_with = "opt_u64_from_str_or_num", default)]
+    #[serde(
+        rename = "actionLongHold",
+        deserialize_with = "opt_u64_from_str_or_num",
+        default
+    )]
     long_hold_ms: Option<u64>,
 
     #[serde(
@@ -79,11 +90,15 @@ impl Action for ScAction {
     fn did_receive_property_inspector_message(
         &mut self,
         cx: &Context,
-        ev: &DidReceivePropertyInspectorMessage
+        ev: &DidReceivePropertyInspectorMessage,
     ) {
-        debug!(cx.log(), "Received PI message: context={}, message={:?}", ev.context, ev.payload);
+        debug!(
+            cx.log(),
+            "Received PI message: context={}, message={:?}", ev.context, ev.payload
+        );
         // Expect payload: { event: "getActions", isRefresh?: true }
-        let ev_name = ev.payload
+        let ev_name = ev
+            .payload
             .get("event")
             .and_then(|v| v.as_str())
             .unwrap_or_default();
@@ -130,12 +145,19 @@ impl Action for ScAction {
         // If no long action is configured, fire short immediately.
         if settings.long_id.is_none() {
             if let Some(id) = settings.short_id.as_deref() {
-                debug!(cx.log(), "key_down: firing short action '{}' immediately", id);
-                cx.bus().adapters_notify_topic_t(EXEC_SEND, None, ExecSend {
-                    action_id: id.to_string(),
-                    hold_ms: settings.short_hold_ms,
-                    is_down: None, // normal key press
-                });
+                debug!(
+                    cx.log(),
+                    "key_down: firing short action '{}' immediately", id
+                );
+                cx.bus().adapters_notify_topic_t(
+                    EXEC_SEND,
+                    None,
+                    ExecSend {
+                        action_id: id.to_string(),
+                        hold_ms: settings.short_hold_ms,
+                        is_down: None, // normal key press
+                    },
+                );
                 cx.sd().show_ok(ev.context);
                 self.short_fired_on_down = true;
             }
@@ -160,21 +182,28 @@ impl Action for ScAction {
             long_fired.store(true, Ordering::SeqCst);
             debug!(
                 ctx.log(),
-                "key_down: firing long action '{}' after {}ms",
-                long_id,
-                threshold_ms
+                "key_down: firing long action '{}' after {}ms", long_id, threshold_ms
             );
-            ctx.bus().adapters_notify_topic_t(EXEC_SEND, None, ExecSend {
-                action_id: long_id,
-                hold_ms: long_hold,
-                is_down: None, // normal key press
-            });
+            ctx.bus().adapters_notify_topic_t(
+                EXEC_SEND,
+                None,
+                ExecSend {
+                    action_id: long_id,
+                    hold_ms: long_hold,
+                    is_down: None, // normal key press
+                },
+            );
             ctx.sd().show_ok(ctx_id);
         });
     }
 
     fn key_up(&mut self, cx: &Context, ev: &KeyUp) {
-        debug!(cx.log(), "key_up: action={} context={}", self.id(), ev.context);
+        debug!(
+            cx.log(),
+            "key_up: action={} context={}",
+            self.id(),
+            ev.context
+        );
 
         // cancel any pending long
         self.long_cancel.store(true, Ordering::SeqCst);
@@ -205,11 +234,15 @@ impl Action for ScAction {
                 id,
                 settings.short_hold_ms.unwrap_or(0)
             );
-            cx.bus().adapters_notify_topic_t(EXEC_SEND, None, ExecSend {
-                action_id: id.to_string(),
-                hold_ms: settings.short_hold_ms,
-                is_down: None, // normal key press
-            });
+            cx.bus().adapters_notify_topic_t(
+                EXEC_SEND,
+                None,
+                ExecSend {
+                    action_id: id.to_string(),
+                    hold_ms: settings.short_hold_ms,
+                    is_down: None, // normal key press
+                },
+            );
             cx.sd().show_ok(ev.context);
         }
     }
@@ -219,43 +252,48 @@ fn build_pi_items(cx: &Context, cx_id: &str) {
     let resource_dir = match cx.try_ext::<ResourceDir>() {
         Some(dir) => dir.get(),
         None => {
-            error!(cx.log(), "ResourceDir ext missing, cannot get resource directory");
+            error!(
+                cx.log(),
+                "ResourceDir ext missing, cannot get resource directory"
+            );
             return;
         }
     };
     let action_store = match cx.try_ext::<ActionBindingsStore>() {
         Some(store) => store,
         None => {
-            error!(cx.log(), "ActionBindingsStore ext missing, cannot get actions");
+            error!(
+                cx.log(),
+                "ActionBindingsStore ext missing, cannot get actions"
+            );
             return;
         }
     };
     let bindings = action_store.snapshot();
     let translations = load_translations(resource_dir.join("global.ini"), &cx.log());
     let mut items = vec![DataSourceResult::Item(Item::with_label("", "No Action"))];
-    items.extend(
-        bindings.action_maps.values().map(|am| {
-            let children: Vec<Item> = am.actions
-                .values()
-                .map(|ab| {
-                    Item::with_label(
-                        ab.action_id.to_string(),
-                        format!(
-                            "{} [{}]",
-                            ab.get_label(&translations),
-                            ab.get_binds_label().unwrap_or_default()
-                        )
-                    )
-                })
-                .collect();
-            DataSourceResult::ItemGroup(ItemGroup::new(am.get_label(&translations), children))
-        })
-    );
+    items.extend(bindings.action_maps.values().map(|am| {
+        let children: Vec<Item> = am
+            .actions
+            .values()
+            .map(|ab| {
+                Item::with_label(
+                    ab.action_id.to_string(),
+                    format!(
+                        "{} [{}]",
+                        ab.get_label(&translations),
+                        ab.get_binds_label().unwrap_or_default()
+                    ),
+                )
+            })
+            .collect();
+        DataSourceResult::ItemGroup(ItemGroup::new(am.get_label(&translations), children))
+    }));
     cx.sd().send_to_property_inspector(
         cx_id,
         json!({
             "event": "getActions",
             "items": items,
-        })
+        }),
     );
 }

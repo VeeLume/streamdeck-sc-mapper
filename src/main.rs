@@ -1,60 +1,55 @@
-use std::{ path::PathBuf, sync::Arc };
-use std::env;
-use std::process::exit;
-use streamdeck_lib::prelude::*;
 use crate::actions::generate_profile::GenerateProfileAction;
 use crate::actions::rotate_install::RotateInstallAction;
 use crate::actions::sc_action::ScAction;
 use crate::sc::adapters::bindings_adapter::BindingsAdapter;
 use crate::sc::adapters::exec_adapter::ExecAdapter;
 use crate::sc::adapters::install_scanner::InstallScannerAdapter;
-use crate::sc::shared::{ ActiveInstall, InstallPaths };
-use crate::{ bindings::action_bindings::ActionBindingsStore, sc::shared::ResourceDir };
+use crate::sc::shared::{ActiveInstall, InstallPaths};
+use crate::{bindings::action_bindings::ActionBindingsStore, sc::shared::ResourceDir};
+use std::env;
+use std::process::exit;
+use std::{path::PathBuf, sync::Arc};
+use streamdeck_lib::prelude::*;
 
 mod data_source;
 mod serde_helpers;
 mod bindings {
-    pub mod constants;
+    mod action_binding;
+    pub mod action_bindings;
+    mod action_map;
     mod activation_mode;
-    mod binds_generator;
-    mod generate_mappings_xml;
-    mod str_intern;
-    mod helpers;
     mod bind;
     mod bind_tokens;
     mod binds;
-    mod action_binding;
-    mod action_map;
-    pub mod action_bindings;
+    mod binds_generator;
+    pub mod constants;
+    mod generate_mappings_xml;
+    mod helpers;
+    mod str_intern;
 }
 mod sc {
     pub mod shared;
     pub mod topics;
     pub mod adapters {
-        pub mod install_scanner;
         pub mod bindings_adapter;
         pub mod exec_adapter;
+        pub mod install_scanner;
     }
 }
 mod actions {
     pub mod generate_profile;
-    pub mod sc_action;
     pub mod rotate_install;
+    pub mod sc_action;
 }
 const PLUGIN_ID: &str = "icu.veelume.sc-mapper";
 
 fn get_resource_dir() -> Result<PathBuf, String> {
     match env::current_exe() {
-        Ok(path) =>
-            match path.parent() {
-                Some(parent) => Ok(parent.to_path_buf()),
-                None => {
-                    Err("Failed to get parent directory of current executable".to_string())
-                }
-            }
-        Err(e) => {
-            Err(format!("Failed to get current executable path: {e}"))
-        }
+        Ok(path) => match path.parent() {
+            Some(parent) => Ok(parent.to_path_buf()),
+            None => Err("Failed to get parent directory of current executable".to_string()),
+        },
+        Err(e) => Err(format!("Failed to get current executable path: {e}")),
     }
 }
 
@@ -84,7 +79,8 @@ fn main() {
             }
             HookEvent::ApplicationDidLaunch(app) => {
                 info!(cx.log(), "Application launched: {:?}", app);
-                cx.bus().adapters_notify_topic_t(crate::sc::topics::INSTALL_SCAN, None, ());
+                cx.bus()
+                    .adapters_notify_topic_t(crate::sc::topics::INSTALL_SCAN, None, ());
             }
             HookEvent::ApplicationDidTerminate(app) => {
                 info!(cx.log(), "Application terminated: {:?}", app);
@@ -117,7 +113,12 @@ fn main() {
 
             // ---- typed notifies ----
             HookEvent::ActionNotify(ev) => {
-                info!(cx.log(), "Action notify topic={} context={:?}", ev.name(), ev.context());
+                info!(
+                    cx.log(),
+                    "Action notify topic={} context={:?}",
+                    ev.name(),
+                    ev.context()
+                );
             }
             HookEvent::AdapterNotify(target, ev) => {
                 info!(
@@ -135,13 +136,13 @@ fn main() {
             HookEvent::AdapterControl(ctl) => {
                 debug!(cx.log(), "Adapter control: {:?}", ctl);
             }
-            HookEvent::Tick => {/* periodic */}
+            HookEvent::Tick => { /* periodic */ }
             HookEvent::Exit => {
                 info!(cx.log(), "Exiting");
             }
 
             // raw incoming (catch-all if you want)
-            HookEvent::Incoming(_ev) => {/* already handled upstream */}
+            HookEvent::Incoming(_ev) => { /* already handled upstream */ }
 
             _ => {
                 debug!(cx.log(), "Unhandled hook event: {:?}", ev);
@@ -161,20 +162,19 @@ fn main() {
     let install_paths = InstallPaths::default();
     let active_install = ActiveInstall::default();
 
-    let plugin = match
-        PluginBuilder::new()
-            .set_hooks(hooks)
-            .add_extension(Arc::new(action_bindings))
-            .add_extension(Arc::new(resource_dir))
-            .add_extension(Arc::new(install_paths))
-            .add_extension(Arc::new(active_install))
-            .add_adapter(InstallScannerAdapter::new())
-            .add_adapter(BindingsAdapter::new(PLUGIN_ID))
-            .add_adapter(ExecAdapter::new())
-            .add_action(ActionFactory::default_of::<GenerateProfileAction>())
-            .add_action(ActionFactory::default_of::<ScAction>())
-            .add_action(ActionFactory::default_of::<RotateInstallAction>())
-            .build()
+    let plugin = match PluginBuilder::new()
+        .set_hooks(hooks)
+        .add_extension(Arc::new(action_bindings))
+        .add_extension(Arc::new(resource_dir))
+        .add_extension(Arc::new(install_paths))
+        .add_extension(Arc::new(active_install))
+        .add_adapter(InstallScannerAdapter::new())
+        .add_adapter(BindingsAdapter::new(PLUGIN_ID))
+        .add_adapter(ExecAdapter::new())
+        .add_action(ActionFactory::default_of::<GenerateProfileAction>())
+        .add_action(ActionFactory::default_of::<ScAction>())
+        .add_action(ActionFactory::default_of::<RotateInstallAction>())
+        .build()
     {
         Ok(plugin) => plugin,
         Err(e) => {

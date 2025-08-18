@@ -1,10 +1,10 @@
-use roxmltree::Node;
-use serde::{ Deserialize, Serialize };
 use indexmap::IndexMap;
-use std::{ collections::HashMap, ops::Range, sync::Arc };
+use roxmltree::Node;
+use serde::{Deserialize, Serialize};
+use std::{collections::HashMap, ops::Range, sync::Arc};
 
 use crate::bindings::{
-    action_binding::{ ActionBinding, ActionBindingParseError },
+    action_binding::{ActionBinding, ActionBindingParseError},
     activation_mode::ActivationArena,
     bind::BindParseError,
     helpers::get_translation,
@@ -43,17 +43,24 @@ pub enum ActionParseError {
 impl ActionMap {
     pub fn get_label(&self, translations: &HashMap<String, String>) -> String {
         // Prefer UILabel, then UICategory, fall back to map name
-        let key = self.ui_label.as_deref().or(self.ui_category.as_deref()).unwrap_or(&self.name);
+        let key = self
+            .ui_label
+            .as_deref()
+            .or(self.ui_category.as_deref())
+            .unwrap_or(&self.name);
         get_translation(key, translations).to_string()
     }
 
     pub fn from_node(
         node: Node,
         activation_modes: &mut ActivationArena,
-        actionmap_ui_categories: &HashMap<String, String>
+        actionmap_ui_categories: &HashMap<String, String>,
     ) -> Result<(Self, Vec<ActionParseError>), ActionMapParseError> {
         // --- name & version ---
-        let name_str = node.attribute("name").ok_or(ActionMapParseError::MissingName)?.to_string();
+        let name_str = node
+            .attribute("name")
+            .ok_or(ActionMapParseError::MissingName)?
+            .to_string();
 
         let version = node
             .attribute("version")
@@ -79,16 +86,21 @@ impl ActionMap {
         let mut actions: IndexMap<Arc<str>, ActionBinding> = IndexMap::new();
         let mut errors: Vec<ActionParseError> = Vec::new();
 
-        for action_node in node.children().filter(|n| n.is_element() && n.has_tag_name("action")) {
+        for action_node in node
+            .children()
+            .filter(|n| n.is_element() && n.has_tag_name("action"))
+        {
             match ActionBinding::from_node(action_node, &name_str, activation_modes) {
                 Ok((binding, bind_errors)) => {
                     let action_name = binding.action_name.clone(); // Arc<str>
                     actions.insert(action_name.clone(), binding);
                     errors.extend(
-                        bind_errors.into_iter().map(|e| ActionParseError::BindError {
-                            action_name: action_name.to_string(),
-                            bind_error: e,
-                        })
+                        bind_errors
+                            .into_iter()
+                            .map(|e| ActionParseError::BindError {
+                                action_name: action_name.to_string(),
+                                bind_error: e,
+                            }),
                     );
                 }
                 Err(e) => {

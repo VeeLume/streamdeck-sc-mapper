@@ -1,17 +1,17 @@
-use roxmltree::Node;
-use serde::{ Deserialize, Serialize };
-#[cfg(windows)]
-use streamdeck_lib::prelude::*;
 use crate::bindings::{
-    activation_mode::{ ActivationMode, ActivationArena },
+    activation_mode::{ActivationArena, ActivationMode},
     bind::BindParseError,
     binds::Binds,
     helpers::get_translation,
-    str_intern::{ intern },
+    str_intern::intern,
 };
+use roxmltree::Node;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 #[cfg(windows)]
-use std::{ sync::Arc, time::Duration };
+use std::{sync::Arc, time::Duration};
+#[cfg(windows)]
+use streamdeck_lib::prelude::*;
 
 #[derive(Debug)]
 pub enum ActionBindingParseError {
@@ -54,9 +54,12 @@ impl ActionBinding {
     pub fn from_node(
         node: Node,
         action_map_name: &str,
-        activation_arena: &mut ActivationArena
+        activation_arena: &mut ActivationArena,
     ) -> Result<(Self, Vec<BindParseError>), ActionBindingParseError> {
-        let name = node.attribute("name").ok_or(ActionBindingParseError::MissingName)?.to_string();
+        let name = node
+            .attribute("name")
+            .ok_or(ActionBindingParseError::MissingName)?
+            .to_string();
 
         let action_id = intern(format!("{action_map_name}.{name}"));
         let action_name = intern(name);
@@ -96,7 +99,8 @@ impl ActionBinding {
 
         let mut parts: Vec<String> = Vec::new();
 
-        let kb = binds.keyboard
+        let kb = binds
+            .keyboard
             .iter()
             .map(|b| b.to_string())
             .collect::<Vec<_>>();
@@ -104,7 +108,8 @@ impl ActionBinding {
             parts.push(kb.join(", "));
         }
 
-        let mouse = binds.mouse
+        let mouse = binds
+            .mouse
             .iter()
             .map(|b| b.to_string())
             .collect::<Vec<_>>();
@@ -129,53 +134,39 @@ impl ActionBinding {
         logger: Arc<dyn ActionLog>,
         hold_duration_override: Option<Duration>,
         is_down_override: Option<bool>,
-        modes: &crate::bindings::activation_mode::ActivationArena
+        modes: &crate::bindings::activation_mode::ActivationArena,
     ) -> Result<(), String> {
-        use streamdeck_lib::input::dsl;
-        use streamdeck_lib::input::{ InputStep, Key, MouseButton, InputSynth, WinSynth };
         use crate::bindings::bind::BindMain;
+        use streamdeck_lib::input::dsl;
+        use streamdeck_lib::input::{InputStep, InputSynth, Key, MouseButton, WinSynth};
 
         // 0) Choose a bind: prefer keyboard, else mouse
         let bind = {
             let src = self.custom_binds.as_ref().unwrap_or(&self.default_binds);
-            let kb = src.keyboard
-                .iter()
-                .find(|b| !b.is_unbound)
-                .cloned();
-            kb
-                .or_else(||
-                    src.mouse
-                        .iter()
-                        .find(|b| !b.is_unbound)
-                        .cloned()
-                )
+            let kb = src.keyboard.iter().find(|b| !b.is_unbound).cloned();
+            kb.or_else(|| src.mouse.iter().find(|b| !b.is_unbound).cloned())
                 .ok_or_else(|| "No keyboard or mouse bind found".to_string())?
         };
 
         // 1) Resolve activation mode index: bind-level first, then action-level
-        let am_ix = bind.activation_mode_idx
+        let am_ix = bind
+            .activation_mode_idx
             .or(self.activation_mode)
             .ok_or_else(|| "No activation mode available".to_string())?;
-        let mode = modes.get(am_ix).ok_or("Activation mode index out of range")?;
+        let mode = modes
+            .get(am_ix)
+            .ok_or("Activation mode index out of range")?;
 
         // 2) Sort modifiers stably (by scancode when available)
         let mut mods: Vec<Key> = bind.modifiers.iter().copied().collect();
-        mods.sort_by_key(|k|
-            k
-                .to_scan()
-                .map(|s| (0u8, s.code))
-                .unwrap_or((1, 0))
-        );
+        mods.sort_by_key(|k| k.to_scan().map(|s| (0u8, s.code)).unwrap_or((1, 0)));
 
         // Helpful debug: show how each modifier resolves
         for &m in &mods {
             if let Some(s) = m.to_scan() {
                 debug!(
                     logger,
-                    "modifier {:?} -> Scan {{ code: 0x{:X}, extended: {} }}",
-                    m,
-                    s.code,
-                    s.extended
+                    "modifier {:?} -> Scan {{ code: 0x{:X}, extended: {} }}", m, s.code, s.extended
                 );
             } else {
                 // Not expected on Windows, except for unmapped keys
@@ -212,15 +203,16 @@ impl ActionBinding {
         // Safety wrapper: send `steps`, and (optionally) always try a final release of modifiers.
         // Use this for all "balanced" flows (tap/chord/hold, releases, etc.).
         // For explicit "down-only" overrides, pass `release_safety = false`.
-        let send_with_safety = |steps: Vec<InputStep>, release_safety: bool| -> Result<(), String> {
-            let res = send_steps(&steps);
-            if release_safety {
-                // Even if steps were balanced, an intermediate failure could leave a mod down.
-                // Sending extra KeyUp for a not-down key is harmless on Windows.
-                release_mods(&mods);
-            }
-            res
-        };
+        let send_with_safety =
+            |steps: Vec<InputStep>, release_safety: bool| -> Result<(), String> {
+                let res = send_steps(&steps);
+                if release_safety {
+                    // Even if steps were balanced, an intermediate failure could leave a mod down.
+                    // Sending extra KeyUp for a not-down key is harmless on Windows.
+                    release_mods(&mods);
+                }
+                res
+            };
 
         let compute_hold_ms = || -> u64 {
             if let Some(ov) = hold_duration_override {
@@ -272,7 +264,10 @@ impl ActionBinding {
         };
 
         // 4) Behavior by main kind
-        match bind.main.ok_or_else(|| "Bind has no main input".to_string())? {
+        match bind
+            .main
+            .ok_or_else(|| "Bind has no main input".to_string())?
+        {
             BindMain::Key(main_key) => {
                 debug!(
                     logger,
@@ -330,13 +325,16 @@ impl ActionBinding {
                 if wants_hold {
                     return send_with_safety(
                         dsl::hold(&mods, main_key, compute_hold_ms()),
-                        /*release_safety=*/ true
+                        /*release_safety=*/ true,
                     );
                 }
 
                 // Release-only → chord fallback
                 if mode.on_release && !mode.on_press && !mode.on_hold {
-                    return send_with_safety(dsl::chord(&mods, main_key), /*release_safety=*/ true);
+                    return send_with_safety(
+                        dsl::chord(&mods, main_key),
+                        /*release_safety=*/ true,
+                    );
                 }
 
                 // Default press (balanced)
@@ -396,13 +394,16 @@ impl ActionBinding {
                 if wants_hold {
                     return send_with_safety(
                         mouse_hold(&mods, btn, compute_hold_ms()),
-                        /*release_safety=*/ true
+                        /*release_safety=*/ true,
                     );
                 }
 
                 // Release-only → chord fallback
                 if mode.on_release && !mode.on_press && !mode.on_hold {
-                    return send_with_safety(mouse_chord(&mods, btn), /*release_safety=*/ true);
+                    return send_with_safety(
+                        mouse_chord(&mods, btn),
+                        /*release_safety=*/ true,
+                    );
                 }
 
                 // Default click (balanced)
@@ -418,13 +419,13 @@ impl ActionBinding {
         logger: Arc<dyn ActionLog>,
         hold_duration_override: Option<Duration>,
         is_down_override: Option<bool>,
-        bindings: &crate::bindings::action_bindings::ActionBindings
+        bindings: &crate::bindings::action_bindings::ActionBindings,
     ) -> Result<(), String> {
         self.simulate_with_modes(
             logger,
             hold_duration_override,
             is_down_override,
-            &bindings.activation
+            &bindings.activation,
         )
     }
 
@@ -435,7 +436,7 @@ impl ActionBinding {
         _logger: Arc<dyn ActionLog>,
         _hold_duration_override: Option<Duration>,
         _is_down_override: Option<bool>,
-        _modes: &[ActivationMode]
+        _modes: &[ActivationMode],
     ) -> Result<(), String> {
         Err("simulate is only implemented on Windows".into())
     }
@@ -446,7 +447,7 @@ impl ActionBinding {
         _logger: Arc<dyn ActionLog>,
         _hold_duration_override: Option<Duration>,
         _is_down_override: Option<bool>,
-        _bindings: &crate::bindings::action_bindings::ActionBindings
+        _bindings: &crate::bindings::action_bindings::ActionBindings,
     ) -> Result<(), String> {
         Err("simulate is only implemented on Windows".into())
     }
@@ -464,7 +465,7 @@ impl ActionBinding {
 fn resolve_mode_idx(
     node: Node,
     fallback: Option<Node>,
-    arena: &mut ActivationArena
+    arena: &mut ActivationArena,
 ) -> Option<usize> {
     // Named reference
     if let Some(mode_name) = node.attribute("activationMode") {

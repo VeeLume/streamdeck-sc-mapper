@@ -1,13 +1,13 @@
 // src/actions/generate_profile.rs
-use std::time::{ Duration, Instant };
 use chrono::Local;
-use streamdeck_lib::prelude::*;
 use constcat::concat;
+use std::time::{Duration, Instant};
+use streamdeck_lib::prelude::*;
 
-use crate::sc::adapters::bindings_adapter::BindingsAdapter;
-use crate::sc::shared::{ ActiveInstall, GameInstallType };
-use crate::sc::topics::{ BindingsRebuildAndSave, BINDINGS_REBUILD_AND_SAVE };
 use crate::PLUGIN_ID;
+use crate::sc::adapters::bindings_adapter::BindingsAdapter;
+use crate::sc::shared::{ActiveInstall, GameInstallType};
+use crate::sc::topics::{BINDINGS_REBUILD_AND_SAVE, BindingsRebuildAndSave};
 
 pub struct GenerateProfileAction {
     down_at: Option<Instant>,
@@ -47,7 +47,8 @@ impl Action for GenerateProfileAction {
     }
 
     fn key_up(&mut self, cx: &Context, ev: &KeyUp) {
-        let held_ms = self.down_at
+        let held_ms = self
+            .down_at
             .take()
             .and_then(|t| Instant::now().checked_duration_since(t))
             .unwrap_or(Duration::from_millis(0))
@@ -61,16 +62,16 @@ impl Action for GenerateProfileAction {
             None => GameInstallType::Live, // Default to Live if not set
         };
         // Profile name is Plugin ID + install type + timestamp
-        let profile_name = Some(
-            format!("{}-{}-{}", "SC-Mapper", ty.name(), Local::now().format("%Y.%m.%d-%H:%M"))
-        );
+        let profile_name = Some(format!(
+            "{}-{}-{}",
+            "SC-Mapper",
+            ty.name(),
+            Local::now().format("%Y.%m.%d-%H:%M")
+        ));
 
         info!(
             cx.log(),
-            "generate-profile press={}ms with_custom={} ty={:?}",
-            held_ms,
-            with_custom,
-            ty
+            "generate-profile press={}ms with_custom={} ty={:?}", held_ms, with_custom, ty
         );
 
         cx.bus().adapters_notify_name_of::<BindingsAdapter, _>(
@@ -80,7 +81,7 @@ impl Action for GenerateProfileAction {
                 ty,
                 with_custom,
                 name: profile_name.clone(),
-            }
+            },
         );
 
         cx.sd().show_ok(ev.context);

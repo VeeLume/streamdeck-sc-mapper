@@ -1,14 +1,14 @@
-use std::{ collections::HashMap, fs, path::Path, sync::Arc };
 use arc_swap::ArcSwap;
 use indexmap::IndexMap;
 use roxmltree::Document;
-use serde::{ Deserialize, Serialize };
+use serde::{Deserialize, Serialize};
+use std::{collections::HashMap, fs, path::Path, sync::Arc};
 use streamdeck_lib::prelude::*;
 
 use crate::bindings::{
     action_binding::ActionBinding,
     action_map::ActionMap,
-    activation_mode::{ ActivationArena, ActivationMode },
+    activation_mode::{ActivationArena, ActivationMode},
     bind::Bind,
     binds::Binds,
     binds_generator::BindGenerator,
@@ -27,15 +27,19 @@ impl ActionBindings {
         path: P,
         skip_actionmaps: &std::collections::HashSet<String>,
         actionmap_ui_categories: &HashMap<String, String>,
-        logger: &Arc<dyn ActionLog>
+        logger: &Arc<dyn ActionLog>,
     ) -> Result<(), String> {
-        let content = fs::read_to_string(&path).map_err(|e| format!("read default profile: {e}"))?;
+        let content =
+            fs::read_to_string(&path).map_err(|e| format!("read default profile: {e}"))?;
         let doc = Document::parse(&content).map_err(|e| format!("parse default XML: {e}"))?;
 
         let mut ab = ActionBindings::default();
 
         // ActivationMode nodes (dedupe by semantics+name)
-        for node in doc.descendants().filter(|n| n.has_tag_name("ActivationMode")) {
+        for node in doc
+            .descendants()
+            .filter(|n| n.has_tag_name("ActivationMode"))
+        {
             let mode = ActivationMode::from_node(node, true);
             let _ = ActivationMode::insert_or_get(&mut ab.activation, mode);
         }
@@ -52,19 +56,20 @@ impl ActionBindings {
                 Ok((amap, parse_errors)) => {
                     ab.action_maps.insert(amap.name.clone(), amap);
                     for e in parse_errors {
-                        logger.log(&format!("[load_default_profile] parse error in {name}: {e:?}"));
+                        logger.log(&format!(
+                            "[load_default_profile] parse error in {name}: {e:?}"
+                        ));
                     }
                 }
                 Err(e) => {
-                    logger.log(&format!("[load_default_profile] failed to parse {name}: {e:?}"));
+                    logger.log(&format!(
+                        "[load_default_profile] failed to parse {name}: {e:?}"
+                    ));
                 }
             }
         }
 
-        let total_actions: usize = ab.action_maps
-            .values()
-            .map(|m| m.actions.len())
-            .sum();
+        let total_actions: usize = ab.action_maps.values().map(|m| m.actions.len()).sum();
         info!(
             logger,
             "[load_default_profile] Loaded {} actions in {} maps; {} activation modes",
@@ -85,7 +90,7 @@ impl ActionBindings {
     pub fn apply_custom_profile<P: AsRef<Path>>(
         &mut self,
         path: P,
-        logger: &Arc<dyn ActionLog>
+        logger: &Arc<dyn ActionLog>,
     ) -> Result<(), String> {
         let content = fs::read_to_string(&path).map_err(|e| format!("read custom profile: {e}"))?;
         let doc = Document::parse(&content).map_err(|e| format!("parse custom XML: {e}"))?;
@@ -107,11 +112,9 @@ impl ActionBindings {
                     let (prefix, key_str) = match input.get(..3).zip(input.get(3..)) {
                         Some((p, rest)) => (p, rest.trim()),
                         None => {
-                            logger.log(
-                                &format!(
-                                    "[apply_custom_profile] bad input '{input}' on {am_name}.{act_name}"
-                                )
-                            );
+                            logger.log(&format!(
+                                "[apply_custom_profile] bad input '{input}' on {am_name}.{act_name}"
+                            ));
                             continue;
                         }
                     };
@@ -163,9 +166,8 @@ impl ActionBindings {
         serde_json::to_string_pretty(&self).map_err(|e| format!("serialize ActionBindings: {e}"))
     }
 
-    pub fn from_json(content: &str, logger: &Arc<dyn ActionLog>) -> Result<Self, String>{
-        let mut data: ActionBindings = serde_json
-            ::from_str(content)
+    pub fn from_json(content: &str, logger: &Arc<dyn ActionLog>) -> Result<Self, String> {
+        let mut data: ActionBindings = serde_json::from_str(content)
             .map_err(|e| format!("deserialize ActionBindings: {e}"))?;
         data.activation.rebuild_indexes(); // <- important
         info!(
@@ -185,7 +187,10 @@ pub struct ActionBindingsStore {
 
 impl Clone for ActionBindingsStore {
     fn clone(&self) -> Self {
-        Self { inner: Arc::clone(&self.inner), logger: Arc::clone(&self.logger) }
+        Self {
+            inner: Arc::clone(&self.inner),
+            logger: Arc::clone(&self.logger),
+        }
     }
 }
 

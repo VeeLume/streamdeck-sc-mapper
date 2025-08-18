@@ -1,6 +1,6 @@
-use std::{ sync::Arc, collections::HashMap };
 use once_cell::sync::Lazy;
 use parking_lot::RwLock;
+use std::{collections::HashMap, sync::Arc};
 
 static INTERN: Lazy<RwLock<HashMap<String, Arc<str>>>> = Lazy::new(|| RwLock::new(HashMap::new()));
 

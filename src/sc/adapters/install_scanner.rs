@@ -1,12 +1,12 @@
-use std::{ collections::HashMap, path::PathBuf, sync::Arc };
-use crossbeam_channel::{ bounded, select, Receiver as CbReceiver };
-use regex::Regex;
-use streamdeck_lib::prelude::*;
+use crate::sc::topics::{INSTALL_SCAN, INSTALL_UPDATED};
 use crate::sc::{
-    shared::{ ActiveInstall, GameInstallType, InstallPaths },
-    topics::{ InstallActiveChanged, INITIAL_INSTALL_SCAN_DONE, INSTALL_ACTIVE_CHANGED },
+    shared::{ActiveInstall, GameInstallType, InstallPaths},
+    topics::{INITIAL_INSTALL_SCAN_DONE, INSTALL_ACTIVE_CHANGED, InstallActiveChanged},
 };
-use crate::sc::topics::{ INSTALL_SCAN, INSTALL_UPDATED };
+use crossbeam_channel::{Receiver as CbReceiver, bounded, select};
+use regex::Regex;
+use std::{collections::HashMap, path::PathBuf, sync::Arc};
+use streamdeck_lib::prelude::*;
 
 pub struct InstallScannerAdapter;
 
@@ -37,18 +37,22 @@ impl Adapter for InstallScannerAdapter {
         &self,
         cx: &Context,
         bus: std::sync::Arc<dyn Bus>,
-        inbox: CbReceiver<Arc<ErasedTopic>>
+        inbox: CbReceiver<Arc<ErasedTopic>>,
     ) -> AdapterResult {
         let (stop_tx, stop_rx) = bounded::<()>(1);
         let cx = cx.clone();
         let logger = cx.log().clone();
         let store = cx
             .try_ext::<InstallPaths>()
-            .ok_or(AdapterError::Init("InstallPaths extension missing".to_string()))?
+            .ok_or(AdapterError::Init(
+                "InstallPaths extension missing".to_string(),
+            ))?
             .clone();
         let active = cx
             .try_ext::<ActiveInstall>()
-            .ok_or(AdapterError::Init("ActiveInstall extension missing".to_string()))?
+            .ok_or(AdapterError::Init(
+                "ActiveInstall extension missing".to_string(),
+            ))?
             .clone();
 
         let join = std::thread::spawn(move || {
@@ -68,9 +72,7 @@ impl Adapter for InstallScannerAdapter {
                             bus.action_notify_topic_t(
                                 INSTALL_ACTIVE_CHANGED,
                                 None,
-                                InstallActiveChanged {
-                                    ty: new_ty,
-                                }
+                                InstallActiveChanged { ty: new_ty },
                             );
                         }
                     }
@@ -107,8 +109,11 @@ impl Adapter for InstallScannerAdapter {
 }
 
 fn scan_paths_and_active() -> Result<
-    (HashMap<GameInstallType, Option<PathBuf>>, Option<GameInstallType>),
-    String
+    (
+        HashMap<GameInstallType, Option<PathBuf>>,
+        Option<GameInstallType>,
+    ),
+    String,
 > {
     use directories::BaseDirs;
 

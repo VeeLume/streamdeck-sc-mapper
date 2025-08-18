@@ -1,5 +1,5 @@
-use quick_xml::events::{ BytesDecl, BytesEnd, BytesStart, Event };
 use quick_xml::Writer;
+use quick_xml::events::{BytesDecl, BytesEnd, BytesStart, Event};
 use std::fs::File;
 use std::io::BufWriter;
 use std::path::Path;
@@ -13,11 +13,14 @@ impl ActionBindings {
         &self,
         output_path: P,
         devices: Option<&[(&str, &str)]>,
-        profile_name: &str
+        profile_name: &str,
     ) -> Result<(), String> {
         // ---- file & writer ----
         let file = File::create(&output_path).map_err(|e| {
-            format!("Failed to create XML file: {e} at {}", output_path.as_ref().display())
+            format!(
+                "Failed to create XML file: {e} at {}",
+                output_path.as_ref().display()
+            )
         })?;
         let mut writer = Writer::new_with_indent(BufWriter::new(file), b' ', 2);
 
@@ -51,10 +54,7 @@ impl ActionBindings {
             .map_err(|e| format!("Failed to write <devices>: {e}"))?;
 
         // Default to keyboard + mouse
-        let default_devices = [
-            ("keyboard", "1"),
-            ("mouse", "1"),
-        ];
+        let default_devices = [("keyboard", "1"), ("mouse", "1")];
         let dev_list = devices.unwrap_or(&default_devices);
         for &(dev_type, instance) in dev_list {
             let mut dev = BytesStart::new(dev_type);
@@ -65,20 +65,10 @@ impl ActionBindings {
         }
 
         let kb_inst = devices
-            .and_then(|d|
-                d
-                    .iter()
-                    .find(|(t, _)| *t == "keyboard")
-                    .map(|(_, i)| *i)
-            )
+            .and_then(|d| d.iter().find(|(t, _)| *t == "keyboard").map(|(_, i)| *i))
             .unwrap_or("1");
         let mo_inst = devices
-            .and_then(|d|
-                d
-                    .iter()
-                    .find(|(t, _)| *t == "mouse")
-                    .map(|(_, i)| *i)
-            )
+            .and_then(|d| d.iter().find(|(t, _)| *t == "mouse").map(|(_, i)| *i))
             .unwrap_or("1");
 
         writer
@@ -96,10 +86,14 @@ impl ActionBindings {
         // ---- actionmaps with custom binds ----
         for (map_name, action_map) in &self.action_maps {
             // Only actions that actually have *active* custom binds get emitted
-            let custom_actions: Vec<_> = action_map.actions
+            let custom_actions: Vec<_> = action_map
+                .actions
                 .values()
                 .filter(|binding| {
-                    binding.custom_binds.as_ref().is_some_and(|b| b.has_active_binds())
+                    binding
+                        .custom_binds
+                        .as_ref()
+                        .is_some_and(|b| b.has_active_binds())
                 })
                 .collect();
 
@@ -124,13 +118,8 @@ impl ActionBindings {
 
                 // Keyboard rebinds
                 for bind in &custom.keyboard {
-                    if
-                        let Some(input_val) = bind_to_input_with_prefix(
-                            &bind.main,
-                            &bind.modifiers,
-                            kb_inst,
-                            mo_inst
-                        )
+                    if let Some(input_val) =
+                        bind_to_input_with_prefix(&bind.main, &bind.modifiers, kb_inst, mo_inst)
                     {
                         let mut rebind = BytesStart::new("rebind");
                         rebind.push_attribute(("device", "keyboard"));
@@ -146,13 +135,8 @@ impl ActionBindings {
 
                 // Mouse rebinds
                 for bind in &custom.mouse {
-                    if
-                        let Some(input_val) = bind_to_input_with_prefix(
-                            &bind.main,
-                            &bind.modifiers,
-                            kb_inst,
-                            mo_inst
-                        )
+                    if let Some(input_val) =
+                        bind_to_input_with_prefix(&bind.main, &bind.modifiers, kb_inst, mo_inst)
                     {
                         let mut rebind = BytesStart::new("rebind");
                         rebind.push_attribute(("device", "mouse"));

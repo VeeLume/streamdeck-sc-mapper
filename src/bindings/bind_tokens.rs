@@ -1,5 +1,5 @@
 // src/bind_tokens.rs (or any module in *your* crate)
-use streamdeck_lib::input::{ Key, MouseButton };
+use streamdeck_lib::input::{Key, MouseButton};
 
 /// Local trait so we can render external `Key` into the XML token vocabulary.
 pub trait KeyTokenExt {
@@ -160,16 +160,13 @@ fn mod_bucket(tok: &str) -> u8 {
 /// Build the `<rebind input="...">` token without the device prefix.
 pub fn bind_to_token_no_prefix(
     main: &Option<crate::bindings::bind::BindMain>,
-    mods: &std::collections::HashSet<Key>
+    mods: &std::collections::HashSet<Key>,
 ) -> Option<String> {
     use crate::bindings::bind::BindMain::*;
     let main = main.as_ref()?;
 
     // mods → tokens, ordered
-    let mut m: Vec<&'static str> = mods
-        .iter()
-        .map(|k| k.to_token())
-        .collect();
+    let mut m: Vec<&'static str> = mods.iter().map(|k| k.to_token()).collect();
     m.sort_by(|a, b| mod_bucket(a).cmp(&mod_bucket(b)).then(a.cmp(b)));
 
     let main_tok = match *main {
@@ -192,7 +189,7 @@ pub fn bind_to_input_with_prefix(
     main: &Option<crate::bindings::bind::BindMain>,
     mods: &std::collections::HashSet<Key>,
     kb_inst: &str,
-    mo_inst: &str
+    mo_inst: &str,
 ) -> Option<String> {
     use crate::bindings::bind::BindMain::*;
     let no_prefix = bind_to_token_no_prefix(main, mods)?;

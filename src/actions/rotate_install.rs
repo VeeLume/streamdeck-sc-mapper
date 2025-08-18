@@ -2,13 +2,13 @@
 use constcat::concat;
 use streamdeck_lib::prelude::*;
 
+use crate::PLUGIN_ID;
+use crate::sc::topics::INSTALL_ACTIVE_CHANGED;
 use crate::sc::{
     adapters::bindings_adapter::BindingsAdapter,
-    shared::{ ActiveInstall, GameInstallType, InstallPaths },
+    shared::{ActiveInstall, GameInstallType, InstallPaths},
     topics::InstallActiveChanged,
 };
-use crate::sc::topics::{ INSTALL_ACTIVE_CHANGED };
-use crate::PLUGIN_ID;
 
 #[derive(Default)]
 pub struct RotateInstallAction;
@@ -41,7 +41,8 @@ impl Action for RotateInstallAction {
     fn on_notify(&mut self, cx: &Context, ctx_id: &str, event: &ErasedTopic) {
         if let Some(m) = event.downcast(INSTALL_ACTIVE_CHANGED) {
             // Update title when active install changes
-            cx.sd().set_title(ctx_id, Some(m.ty.name().to_string()), None, None);
+            cx.sd()
+                .set_title(ctx_id, Some(m.ty.name().to_string()), None, None);
         }
     }
 
@@ -90,11 +91,12 @@ impl Action for RotateInstallAction {
         cx.bus().adapters_notify_name_of::<BindingsAdapter, _>(
             INSTALL_ACTIVE_CHANGED,
             None,
-            InstallActiveChanged { ty: next }
+            InstallActiveChanged { ty: next },
         );
 
         // Small UX ping
-        cx.sd().set_title(ev.context, Some(next.name().to_string()), None, None);
+        cx.sd()
+            .set_title(ev.context, Some(next.name().to_string()), None, None);
     }
 
     fn key_up(&mut self, _cx: &Context, _ev: &KeyUp) {}

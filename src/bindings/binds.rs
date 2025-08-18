@@ -1,7 +1,7 @@
-use serde::{ Deserialize, Serialize };
+use serde::{Deserialize, Serialize};
 
-use crate::bindings::activation_mode::{ ActivationArena, ActivationMode };
-use crate::bindings::bind::{ Bind, BindMain, BindParseError };
+use crate::bindings::activation_mode::{ActivationArena, ActivationMode};
+use crate::bindings::bind::{Bind, BindMain, BindParseError};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Binds {
@@ -11,7 +11,10 @@ pub struct Binds {
 
 impl Binds {
     pub fn new() -> Self {
-        Binds { keyboard: Vec::new(), mouse: Vec::new() }
+        Binds {
+            keyboard: Vec::new(),
+            mouse: Vec::new(),
+        }
     }
 
     /// Returns true if there are any active binds (not unbound) in either keyboard or mouse.
@@ -26,7 +29,7 @@ impl Binds {
     /// Parse binds for an <action> node, resolving activation modes into an arena (indices).
     pub fn from_node(
         action_node: roxmltree::Node,
-        activation_modes: &mut ActivationArena
+        activation_modes: &mut ActivationArena,
     ) -> (Self, Vec<BindParseError>) {
         let mut keyboard = Vec::new();
         let mut mouse = Vec::new();
@@ -36,7 +39,7 @@ impl Binds {
         fn contains_ignored_input(raw: &str) -> bool {
             raw.split('+')
                 .map(|s| s.trim().to_ascii_lowercase())
-                .any(|tok|
+                .any(|tok| {
                     matches!(
                         tok.as_str(),
                         // wheel
@@ -55,7 +58,7 @@ impl Binds {
                             "hmd_pitch" |
                             "hmd_yaw"
                     )
-                )
+                })
         }
 
         let mut route = |b: Bind| {
@@ -87,7 +90,8 @@ impl Binds {
         // nested device nodes
         for node in action_node
             .children()
-            .filter(|n| n.is_element() && (n.has_tag_name("keyboard") || n.has_tag_name("mouse"))) {
+            .filter(|n| n.is_element() && (n.has_tag_name("keyboard") || n.has_tag_name("mouse")))
+        {
             if let Some(raw) = node.attribute("input") {
                 let trimmed = raw.trim();
                 if contains_ignored_input(trimmed) {
@@ -101,16 +105,18 @@ impl Binds {
                 }
             }
 
-            for input in node.children().filter(|n| n.is_element() && n.has_tag_name("inputdata")) {
+            for input in node
+                .children()
+                .filter(|n| n.is_element() && n.has_tag_name("inputdata"))
+            {
                 if let Some(raw) = input.attribute("input") {
                     let trimmed = raw.trim();
                     if contains_ignored_input(trimmed) {
                         continue;
                     }
 
-                    let mode = ActivationMode::resolve(input, Some(node), activation_modes).or_else(
-                        || ActivationMode::resolve(action_node, None, activation_modes)
-                    );
+                    let mode = ActivationMode::resolve(input, Some(node), activation_modes)
+                        .or_else(|| ActivationMode::resolve(action_node, None, activation_modes));
 
                     match Bind::from_string(trimmed, mode) {
                         Ok(b) => route(b),

@@ -1,13 +1,12 @@
-use serde::{ Deserialize, Serialize };
-use streamdeck_lib::input::{ Key, MouseButton };
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::fmt;
-use std::hash::{ Hash, Hasher };
+use std::hash::{Hash, Hasher};
+use streamdeck_lib::input::{Key, MouseButton};
 
 use crate::bindings::constants::CANDIDATE_MODIFIERS;
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
-#[derive(Default)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub enum BindOrigin {
     #[default]
     User, // defaults + user-provided rebinds
@@ -70,10 +69,8 @@ impl Hash for Bind {
         self.main.hash(state);
 
         // Hash modifiers in a deterministic order WITHOUT requiring Key: Ord
-        let mut mods_as_strings: Vec<String> = self.modifiers
-            .iter()
-            .map(|k| k.to_string())
-            .collect();
+        let mut mods_as_strings: Vec<String> =
+            self.modifiers.iter().map(|k| k.to_string()).collect();
         mods_as_strings.sort_unstable();
         for s in mods_as_strings {
             s.hash(state);
@@ -84,14 +81,14 @@ impl Hash for Bind {
 impl fmt::Display for Bind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // Deterministic ordering of modifiers for display
-        let mut mods: Vec<String> = self.modifiers
-            .iter()
-            .map(|k| k.to_string())
-            .collect();
+        let mut mods: Vec<String> = self.modifiers.iter().map(|k| k.to_string()).collect();
         mods.sort_unstable();
 
         let mods_joined = mods.join("+");
-        let main = self.main.as_ref().map_or("<none>".to_string(), |k| k.to_string());
+        let main = self
+            .main
+            .as_ref()
+            .map_or("<none>".to_string(), |k| k.to_string());
 
         if mods_joined.is_empty() {
             write!(f, "{main}")
@@ -106,7 +103,7 @@ impl Bind {
     pub fn new(
         mainkey: Option<BindMain>,
         modifiers: HashSet<Key>,
-        activation_mode_idx: Option<usize>
+        activation_mode_idx: Option<usize>,
     ) -> Self {
         let is_unbound = mainkey.is_none() && modifiers.is_empty();
         Bind {
@@ -121,7 +118,7 @@ impl Bind {
     pub fn generated(
         mainkey: BindMain,
         modifiers: HashSet<Key>,
-        press_mode: Option<usize>
+        press_mode: Option<usize>,
     ) -> Self {
         Bind {
             main: Some(mainkey),
@@ -138,7 +135,7 @@ impl Bind {
     /// `activation_mode_idx` is stored as-is (index into ActivationArena).
     pub fn from_string(
         input: &str,
-        activation_mode_idx: Option<usize>
+        activation_mode_idx: Option<usize>,
     ) -> Result<Self, BindParseError> {
         // Empty → explicit unbound
         if input.trim().is_empty() {
@@ -187,7 +184,11 @@ impl Bind {
         match main_keys.len() {
             // Modifier-only bind: promote the single modifier to main key
             0 if modifiers.len() == 1 => {
-                let mainkey = modifiers.iter().next().cloned().ok_or(BindParseError::NoInput)?;
+                let mainkey = modifiers
+                    .iter()
+                    .next()
+                    .cloned()
+                    .ok_or(BindParseError::NoInput)?;
                 Ok(Bind {
                     main: Some(BindMain::Key(mainkey)),
                     modifiers: HashSet::new(),
@@ -206,14 +207,10 @@ impl Bind {
                     origin: BindOrigin::User,
                 })
             }
-            _ =>
-                Err(BindParseError::TooManyMainKeys {
-                    input: input.to_string(),
-                    main_keys: main_keys
-                        .iter()
-                        .map(|k| k.to_string())
-                        .collect(),
-                }),
+            _ => Err(BindParseError::TooManyMainKeys {
+                input: input.to_string(),
+                main_keys: main_keys.iter().map(|k| k.to_string()).collect(),
+            }),
         }
     }
 }
@@ -221,18 +218,10 @@ impl Bind {
 // Only strip prefixes we actually expect from SC XML like "kb1_", "mo1_", "gp1_"
 fn strip_device_prefix(s: &str) -> &str {
     const PREFIXES: &[&str] = &[
-        "kb1_",
-        "kb2_",
-        "kb_", // keyboard instances (be liberal)
-        "mo1_",
-        "mo2_",
-        "mo_", // mouse instances
-        "gp1_",
-        "gp2_",
-        "gp_", // gamepad
-        "js1_",
-        "js2_",
-        "js_", // joystick (if it ever shows up)
+        "kb1_", "kb2_", "kb_", // keyboard instances (be liberal)
+        "mo1_", "mo2_", "mo_", // mouse instances
+        "gp1_", "gp2_", "gp_", // gamepad
+        "js1_", "js2_", "js_", // joystick (if it ever shows up)
     ];
     for p in PREFIXES {
         if let Some(end) = s.strip_prefix(p) {

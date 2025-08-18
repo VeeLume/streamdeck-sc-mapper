@@ -1,6 +1,6 @@
-use std::collections::HashMap;
-use serde::{ Deserialize, Serialize };
 use roxmltree::Node;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// Your ActivationMode as before
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -23,14 +23,16 @@ impl ActivationMode {
     pub fn from_node(node: Node, include_name: bool) -> Self {
         let attr = |k: &str| node.attribute(k);
         let bool_attr = |k: &str| attr(k) == Some("1");
-        let f32_attr = |k: &str|
+        let f32_attr = |k: &str| {
             attr(k)
                 .and_then(|v| v.parse::<f32>().ok())
-                .filter(|&v| v >= 0.0);
-        let i64_attr = |k: &str|
+                .filter(|&v| v >= 0.0)
+        };
+        let i64_attr = |k: &str| {
             attr(k)
                 .and_then(|v| v.parse::<i64>().ok())
-                .filter(|&v| v >= 0);
+                .filter(|&v| v >= 0)
+        };
 
         ActivationMode {
             name: if include_name {
@@ -73,7 +75,7 @@ impl ActivationMode {
     pub fn resolve(
         node: Node,
         fallback: Option<Node>,
-        arena: &mut ActivationArena
+        arena: &mut ActivationArena,
     ) -> Option<usize> {
         // Named reference first
         if let Some(mode_name) = node.attribute("activationMode") {

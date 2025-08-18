@@ -1,9 +1,9 @@
-use crossbeam_channel::{ bounded, select, Receiver as CbReceiver };
+use crossbeam_channel::{Receiver as CbReceiver, bounded, select};
+use std::{sync::Arc, time::Duration};
 use streamdeck_lib::prelude::*;
-use std::{ sync::Arc, time::Duration };
 
-use crate::{ bindings::action_bindings::ActionBindingsStore, sc::topics::ExecSend };
 use crate::sc::topics::EXEC_SEND;
+use crate::{bindings::action_bindings::ActionBindingsStore, sc::topics::ExecSend};
 
 pub struct ExecAdapter;
 
@@ -34,13 +34,15 @@ impl Adapter for ExecAdapter {
         &self,
         cx: &Context,
         _bus: Arc<dyn Bus>,
-        inbox: CbReceiver<Arc<ErasedTopic>>
+        inbox: CbReceiver<Arc<ErasedTopic>>,
     ) -> AdapterResult {
         let (stop_tx, stop_rx) = bounded::<()>(1);
         let logger = cx.log().clone();
         let store = cx
             .try_ext::<ActionBindingsStore>()
-            .ok_or(AdapterError::Init("ActionBindingsStore extension missing".to_string()))?
+            .ok_or(AdapterError::Init(
+                "ActionBindingsStore extension missing".to_string(),
+            ))?
             .clone();
 
         let join = std::thread::spawn(move || {
@@ -71,7 +73,7 @@ impl Adapter for ExecAdapter {
 fn handle_exec(
     store: &ActionBindingsStore,
     logger: &Arc<dyn ActionLog>,
-    msg: &ExecSend
+    msg: &ExecSend,
 ) -> Result<(), String> {
     let action = store
         .get_binding_by_id(&msg.action_id)

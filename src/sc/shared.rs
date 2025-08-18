@@ -1,10 +1,12 @@
-use std::{ collections::HashMap, path::PathBuf, sync::{ Arc, RwLock } };
 use directories::BaseDirs;
-use serde::{ Deserialize, Serialize };
+use serde::{Deserialize, Serialize};
+use std::{
+    collections::HashMap,
+    path::PathBuf,
+    sync::{Arc, RwLock},
+};
 
-
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Serialize, Deserialize, Default)]
 pub enum GameInstallType {
     #[default]
     Live,
@@ -40,10 +42,7 @@ impl Default for ActiveInstall {
 }
 impl ActiveInstall {
     pub fn get(&self) -> GameInstallType {
-        self.0
-            .read()
-            .map(|g| *g)
-            .unwrap_or(GameInstallType::Live)
+        self.0.read().map(|g| *g).unwrap_or(GameInstallType::Live)
     }
     pub fn set(&self, v: GameInstallType) {
         if let Ok(mut w) = self.0.write() {
@@ -60,11 +59,7 @@ impl ResourceDir {
         Self(Arc::new(RwLock::new(dir)))
     }
     pub fn get(&self) -> PathBuf {
-        self.0
-            .read()
-            .ok()
-            .map(|p| p.clone())
-            .unwrap_or_default()
+        self.0.read().ok().map(|p| p.clone()).unwrap_or_default()
     }
 }
 
