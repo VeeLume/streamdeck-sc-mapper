@@ -2,10 +2,11 @@ use std::{ collections::HashMap, path::PathBuf, sync::{ Arc, RwLock } };
 use directories::BaseDirs;
 use serde::{ Deserialize, Serialize };
 
-use crate::{ bindings::action_bindings::ActionBindingsStore, data_source::DataSourceResult };
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Serialize, Deserialize)]
+#[derive(Default)]
 pub enum GameInstallType {
+    #[default]
     Live,
     Ptu,
     TechPreview,
@@ -27,11 +28,6 @@ impl GameInstallType {
 
     pub fn iter() -> impl Iterator<Item = GameInstallType> {
         Self::ALL.into_iter()
-    }
-}
-impl Default for GameInstallType {
-    fn default() -> Self {
-        GameInstallType::Live
     }
 }
 
@@ -70,11 +66,6 @@ impl ResourceDir {
             .map(|p| p.clone())
             .unwrap_or_default()
     }
-    pub fn set(&self, p: PathBuf) {
-        if let Ok(mut w) = self.0.write() {
-            *w = p;
-        }
-    }
 }
 
 /// Map of install type -> discovered game folder (may be None)
@@ -86,11 +77,6 @@ impl InstallPaths {
             .read()
             .ok()
             .and_then(|m| m.get(&ty).cloned().unwrap_or(None))
-    }
-    pub fn set(&self, ty: GameInstallType, path: Option<PathBuf>) {
-        if let Ok(mut w) = self.0.write() {
-            w.insert(ty, path);
-        }
     }
     pub fn replace_all(&self, m: HashMap<GameInstallType, Option<PathBuf>>) {
         if let Ok(mut w) = self.0.write() {

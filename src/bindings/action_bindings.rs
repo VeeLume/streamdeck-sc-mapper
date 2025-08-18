@@ -163,7 +163,7 @@ impl ActionBindings {
         serde_json::to_string_pretty(&self).map_err(|e| format!("serialize ActionBindings: {e}"))
     }
 
-    pub fn from_json(&mut self, content: &str, logger: &Arc<dyn ActionLog>) -> Result<(), String> {
+    pub fn from_json(content: &str, logger: &Arc<dyn ActionLog>) -> Result<Self, String>{
         let mut data: ActionBindings = serde_json
             ::from_str(content)
             .map_err(|e| format!("deserialize ActionBindings: {e}"))?;
@@ -174,9 +174,7 @@ impl ActionBindings {
             data.action_maps.len(),
             data.activation.len()
         );
-        self.action_maps = data.action_maps;
-        self.activation = data.activation;
-        Ok(())
+        Ok(data)
     }
 }
 
@@ -212,10 +210,6 @@ impl ActionBindingsStore {
     /// Reset to empty.
     pub fn clear(&self) {
         self.inner.store(Arc::new(ActionBindings::default()));
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.inner.load().action_maps.is_empty()
     }
 
     pub fn get_binding_by_id(&self, id: &str) -> Option<ActionBinding> {

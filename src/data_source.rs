@@ -32,13 +32,13 @@ pub struct DataSourcePayload {
 // ---- helpers (optional) -----------------------------------------------------
 
 impl Item {
-    pub fn new<V: Into<String>>(value: V) -> Self {
+    pub fn _new<V: Into<String>>(value: V) -> Self {
         Self { value: value.into(), label: None, disabled: None }
     }
     pub fn with_label<V: Into<String>, L: Into<String>>(value: V, label: L) -> Self {
         Self { value: value.into(), label: Some(label.into()), disabled: None }
     }
-    pub fn disabled(mut self, v: bool) -> Self {
+    pub fn _disabled(mut self, v: bool) -> Self {
         if v { self.disabled = Some(true); }
         self
     }

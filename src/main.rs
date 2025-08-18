@@ -49,11 +49,11 @@ fn get_resource_dir() -> Result<PathBuf, String> {
             match path.parent() {
                 Some(parent) => Ok(parent.to_path_buf()),
                 None => {
-                    return Err("Failed to get parent directory of current executable".to_string());
+                    Err("Failed to get parent directory of current executable".to_string())
                 }
             }
         Err(e) => {
-            return Err(format!("Failed to get current executable path: {e}"));
+            Err(format!("Failed to get current executable path: {e}"))
         }
     }
 }
@@ -62,7 +62,7 @@ fn main() {
     let logger: Arc<dyn ActionLog> = match FileLogger::from_appdata(PLUGIN_ID) {
         Ok(logger) => Arc::new(logger),
         Err(e) => {
-            eprintln!("Failed to create logger: {}", e);
+            eprintln!("Failed to create logger: {e}");
             exit(1);
         }
     };

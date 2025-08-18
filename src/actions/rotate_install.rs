@@ -1,6 +1,5 @@
 // src/actions/rotate_install.rs
 use constcat::concat;
-use serde_json::json;
 use streamdeck_lib::prelude::*;
 
 use crate::sc::{

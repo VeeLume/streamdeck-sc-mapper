@@ -108,7 +108,7 @@ impl Action for ScAction {
         self.long_fired.store(false, Ordering::SeqCst);
         self.short_fired_on_down = false;
 
-        let settings = match ScActionSettings::from_map(&ev.settings) {
+        let settings = match ScActionSettings::from_map(ev.settings) {
             Ok(s) => s,
             Err(e) => {
                 error!(cx.log(), "Failed to parse action settings: {}", e);
@@ -189,7 +189,7 @@ impl Action for ScAction {
             return;
         }
 
-        let settings = match ScActionSettings::from_map(&ev.settings) {
+        let settings = match ScActionSettings::from_map(ev.settings) {
             Ok(s) => s,
             Err(e) => {
                 error!(cx.log(), "Failed to parse action settings: {}", e);

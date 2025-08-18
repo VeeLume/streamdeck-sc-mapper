@@ -168,9 +168,6 @@ impl ActivationArena {
     pub fn len(&self) -> usize {
         self.modes.len()
     }
-    pub fn is_empty(&self) -> bool {
-        self.modes.is_empty()
-    }
     pub fn get(&self, ix: usize) -> Option<&ActivationMode> {
         self.modes.get(ix)
     }

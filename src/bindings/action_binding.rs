@@ -58,7 +58,7 @@ impl ActionBinding {
     ) -> Result<(Self, Vec<BindParseError>), ActionBindingParseError> {
         let name = node.attribute("name").ok_or(ActionBindingParseError::MissingName)?.to_string();
 
-        let action_id = intern(format!("{}.{}", action_map_name, name));
+        let action_id = intern(format!("{action_map_name}.{name}"));
         let action_name = intern(name);
         let ui_label = Self::non_empty_attr(node, "UILabel").map(intern);
         let ui_description = Self::non_empty_attr(node, "UIDescription").map(intern);

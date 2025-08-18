@@ -265,8 +265,8 @@ pub fn load_translations(
 }
 
 fn parse_xml(
-    game_path: &std::path::PathBuf,
-    resource_dir: &std::path::PathBuf,
+    game_path: &std::path::Path,
+    resource_dir: &std::path::Path,
     ty: GameInstallType,
     with_custom: bool,
     logger: &Arc<dyn ActionLog>
@@ -318,7 +318,7 @@ fn load_from_json(
     logger: &Arc<dyn ActionLog>
 ) -> Result<ActionBindings, String> {
     let base = appdata_dir(PLUGIN_ID).map_err(|e|
-        format!("Failed to get AppData directory: {}", e)
+        format!("Failed to get AppData directory: {e}")
     )?;
     let file = base.join(format!("bindings_{}.json", ty.name()));
     if !file.try_exists().unwrap_or(false) {
@@ -326,11 +326,8 @@ fn load_from_json(
     }
     let content = std::fs
         ::read_to_string(&file)
-        .map_err(|e| format!("Failed to read bindings file: {}", e))?;
-    let mut ab = ActionBindings::default();
-    ab.from_json(&content, logger)?;
-
-    ab.activation.rebuild_indexes(); // <- important
+        .map_err(|e| format!("Failed to read bindings file: {e}"))?;
+    let ab = ActionBindings::from_json(&content, logger)?;
     info!(
         logger,
         "Loaded {} action maps with {} activation modes for {:?}",
@@ -343,7 +340,7 @@ fn load_from_json(
 
 fn save(
     ab: &ActionBindings,
-    game_path: &std::path::PathBuf,
+    game_path: &std::path::Path,
     profile_name: Option<String>,
     plugin_id: &str,
     ty: GameInstallType,
@@ -362,7 +359,7 @@ fn save(
         format!("{}-{}-{}", "SC-Mapper", ty.name(), Local::now().format("%Y%m%d-%H:%M"))
     });
 
-    let profile_path = profile_dir.join(format!("{}.xml", PLUGIN_ID));
+    let profile_path = profile_dir.join(format!("{PLUGIN_ID}.xml"));
     if let Err(e) = ab.generate_mapping_xml(profile_path.clone(), None, &profile_name) {
         warn!(logger, "generate_mapping_xml: {}", e);
     } else {

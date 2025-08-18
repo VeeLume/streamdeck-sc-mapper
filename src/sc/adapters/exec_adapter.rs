@@ -82,5 +82,5 @@ fn handle_exec(
 
     action
         .simulate_using(Arc::clone(logger), hold_ms, msg.is_down, &bindings)
-        .map_err(|e| format!("simulate: {}", e))
+        .map_err(|e| format!("simulate: {e}"))
 }

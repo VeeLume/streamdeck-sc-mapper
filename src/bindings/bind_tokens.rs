@@ -197,7 +197,7 @@ pub fn bind_to_input_with_prefix(
     use crate::bindings::bind::BindMain::*;
     let no_prefix = bind_to_token_no_prefix(main, mods)?;
     match main.as_ref()? {
-        Key(_) => Some(format!("kb{kb}_{}", no_prefix, kb = kb_inst)),
-        Mouse(_) => Some(format!("mo{mo}_{}", no_prefix, mo = mo_inst)),
+        Key(_) => Some(format!("kb{kb_inst}_{no_prefix}")),
+        Mouse(_) => Some(format!("mo{mo_inst}_{no_prefix}")),
     }
 }

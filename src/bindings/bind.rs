@@ -4,18 +4,14 @@ use std::collections::HashSet;
 use std::fmt;
 use std::hash::{ Hash, Hasher };
 
-use crate::bindings::bind_tokens::{ bind_to_input_with_prefix, bind_to_token_no_prefix };
 use crate::bindings::constants::CANDIDATE_MODIFIERS;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Default)]
 pub enum BindOrigin {
+    #[default]
     User, // defaults + user-provided rebinds
     Generated, // produced by BindGenerator
-}
-impl Default for BindOrigin {
-    fn default() -> Self {
-        BindOrigin::User
-    }
 }
 
 // What the "main" part of a bind is
@@ -28,7 +24,7 @@ pub enum BindMain {
 impl fmt::Display for BindMain {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            BindMain::Key(k) => write!(f, "{}", k),
+            BindMain::Key(k) => write!(f, "{k}"),
             BindMain::Mouse(btn) => write!(f, "{}", mouse_to_str(*btn)),
         }
     }
@@ -220,13 +216,6 @@ impl Bind {
                 }),
         }
     }
-
-    pub fn to_xml_token_no_prefix(&self, kb_inst: &str, mo_inst: &str) -> Option<String> {
-        bind_to_token_no_prefix(&self.main, &self.modifiers)
-    }
-    pub fn to_xml_input_with_prefix(&self, kb_inst: &str, mo_inst: &str) -> Option<String> {
-        bind_to_input_with_prefix(&self.main, &self.modifiers, kb_inst, mo_inst)
-    }
 }
 
 // Only strip prefixes we actually expect from SC XML like "kb1_", "mo1_", "gp1_"
@@ -246,8 +235,8 @@ fn strip_device_prefix(s: &str) -> &str {
         "js_", // joystick (if it ever shows up)
     ];
     for p in PREFIXES {
-        if s.starts_with(p) {
-            return &s[p.len()..];
+        if let Some(end) = s.strip_prefix(p) {
+            return end;
         }
     }
     s
@@ -261,7 +250,7 @@ fn mouse_alias(seg: &str) -> Option<MouseButton> {
         let last_num = rest
             .split('_')
             .filter_map(|p| p.parse::<u16>().ok())
-            .last();
+            .next_back();
 
         if let Some(n) = last_num {
             return Some(match n {

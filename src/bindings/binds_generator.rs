@@ -159,7 +159,7 @@ impl BindGenerator {
                 let used = groups
                     .iter()
                     .any(|g| {
-                        self.used_binds_by_group.get(g).map_or(false, |s| s.contains(&candidate))
+                        self.used_binds_by_group.get(g).is_some_and(|s| s.contains(&candidate))
                     });
                 if used {
                     continue;
@@ -197,9 +197,9 @@ impl BindGenerator {
             let one = HashSet::from([v[i]]);
             out.push(one.clone());
 
-            for j in i + 1..v.len() {
+            for j in v.iter().skip(i + 1) {
                 let mut two = one.clone();
-                two.insert(v[j]);
+                two.insert(*j);
                 out.push(two);
             }
         }
@@ -220,7 +220,7 @@ impl BindGenerator {
                 let has_default = binding.default_binds.has_active_binds();
                 let has_custom = binding.custom_binds
                     .as_ref()
-                    .map_or(false, |b| b.has_active_binds());
+                    .is_some_and(|b| b.has_active_binds());
 
                 if has_default || has_custom {
                     continue;
@@ -232,7 +232,7 @@ impl BindGenerator {
                         mouse: vec![],
                     });
 
-                    let _ = self.logger.log(
+                    self.logger.log(
                         &format!(
                             "✅ Generated bind for {}.{}: {}",
                             map_name,
@@ -241,13 +241,13 @@ impl BindGenerator {
                         )
                     );
                 } else {
-                    let _ = self.logger.log(
+                    self.logger.log(
                         &format!("⚠️ No available bind for {}.{}", map_name, binding.action_name)
                     );
                 }
             }
         }
 
-        let _ = self.logger.log("[generate_missing_binds] Done generating binds");
+        self.logger.log("[generate_missing_binds] Done generating binds");
     }
 }

@@ -99,7 +99,7 @@ impl ActionBindings {
             let custom_actions: Vec<_> = action_map.actions
                 .values()
                 .filter(|binding| {
-                    binding.custom_binds.as_ref().map_or(false, |b| b.has_active_binds())
+                    binding.custom_binds.as_ref().is_some_and(|b| b.has_active_binds())
                 })
                 .collect();
 
