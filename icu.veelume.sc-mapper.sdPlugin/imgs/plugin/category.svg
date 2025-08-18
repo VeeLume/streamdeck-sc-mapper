@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+    stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <!-- outer ring -->
+    <circle cx="10" cy="10" r="7.5" />
+    <!-- compass star -->
+    <path d="M10 5.3l1.6 3.1 3.1 1.6-3.1 1.6L10 14.7l-1.6-3.1-3.1-1.6 3.1-1.6L10 5.3z" />
+    <!-- center dot -->
+    <circle cx="10" cy="10" r="0.9" fill="currentColor" stroke="none" />
+</svg>

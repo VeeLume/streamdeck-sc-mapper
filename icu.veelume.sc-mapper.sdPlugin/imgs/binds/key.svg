@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 72 72">
+    <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#111827" />
+            <stop offset="1" stop-color="#0B0F14" />
+        </linearGradient>
+    </defs>
+    <!-- background -->
+    <rect x="2" y="2" width="68" height="68" rx="12" fill="url(#bg)" />
+    <rect x="2.5" y="2.5" width="67" height="67" rx="11.5" fill="none" stroke="#1F2937" opacity=".7" />
+
+    <!-- document with folded corner -->
+    <path d="M22 16h22l10 10v24a8 8 0 0 1-8 8H22a8 8 0 0 1-8-8V24a8 8 0 0 1 8-8z" fill="none" stroke="#FFFFFF"
+        stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M44 16v10h10" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round"
+        stroke-linejoin="round" />
+
+    <!-- tiny gear (centered ~46,46) -->
+    <circle cx="46" cy="46" r="6.2" fill="none" stroke="#FFFFFF" stroke-width="2.4" />
+    <path
+        d="M46 38.8v2.4M46 50.8v2.4M38.8 46h2.4M50.8 46h2.4M41.7 41.7l1.7 1.7M48.6 48.6l1.7 1.7M41.7 50.3l1.7-1.7M48.6 43.4l1.7-1.7"
+        stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" />
+</svg>

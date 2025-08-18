@@ -1,0 +1,74 @@
+{
+  "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
+  "UUID": "icu.veelume.sc-mapper",
+  "Name": "Star Citizen Mapper",
+  "CodePath": "icu.veelume.sc-mapper.exe",
+  "Author": "Veelume",
+  "Version": "0.1.9.1",
+  "Description": "Stream Deck plugin for Star Citizen",
+  "Icon": "imgs/plugin/icon",
+  "OS": [
+    {
+      "Platform": "windows",
+      "MinimumVersion": "10"
+    }
+  ],
+  "SDKVersion": 3,
+  "Software": {
+    "MinimumVersion": "6.9"
+  },
+  "ApplicationsToMonitor": {
+    "windows": [
+      "StarCitizen.exe"
+    ]
+  },
+  "Category": "Star Citizen Mapper",
+  "CategoryIcon": "imgs/plugin/category",
+  "Actions": [
+    {
+      "UUID": "icu.veelume.sc-mapper.action",
+      "Name": "Star Citizen Action",
+      "Icon": "imgs/action/list",
+      "Tooltip": "Send an action to Star Citizen",
+      "PropertyInspectorPath": "ui/action.html",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/action/key"
+        }
+      ]
+    },
+    {
+      "UUID": "icu.veelume.sc-mapper.generate-profile",
+      "Name": "Generate Profile",
+      "Icon": "imgs/binds/list",
+      "Tooltip": "Generate keybind profile (short = with custom, long = clean)",
+      "PropertyInspectorPath": "ui/binds.html",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/binds/key"
+        }
+      ]
+    },
+    {
+      "UUID": "icu.veelume.sc-mapper.rotate-install",
+      "Name": "Rotate Install",
+      "Icon": "imgs/rotate/list",
+      "Tooltip": "Cycle LIVE / PTU / Tech Preview",
+      "PropertyInspectorPath": "ui/rotate.html",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/rotate/key"
+        }
+      ]
+    }
+  ]
+}
