@@ -30,7 +30,7 @@
       "Name": "Star Citizen Action",
       "Icon": "imgs/action/list",
       "Tooltip": "Send an action to Star Citizen",
-      "PropertyInspectorPath": "ui/action.html",
+      "PropertyInspectorPath": "ui/action.htm",
       "Controllers": [
         "Keypad"
       ],
@@ -45,7 +45,6 @@
       "Name": "Generate Profile",
       "Icon": "imgs/binds/list",
       "Tooltip": "Generate keybind profile (short = with custom, long = clean)",
-      "PropertyInspectorPath": "ui/binds.html",
       "Controllers": [
         "Keypad"
       ],
@@ -60,7 +59,6 @@
       "Name": "Rotate Install",
       "Icon": "imgs/rotate/list",
       "Tooltip": "Cycle LIVE / PTU / Tech Preview",
-      "PropertyInspectorPath": "ui/rotate.html",
       "Controllers": [
         "Keypad"
       ],
