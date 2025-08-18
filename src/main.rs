@@ -70,7 +70,7 @@ fn main() {
         }
     };
 
-    let hooks = AppHooks::default().add(|cx, ev| {
+    let hooks = AppHooks::default().append(|cx, ev| {
         match ev {
             // ---- lifecycle you previously logged + kicked scans on ----
             HookEvent::Init => {
