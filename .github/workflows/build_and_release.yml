@@ -56,7 +56,7 @@ jobs:
 
       - name: Validate plugin bundle
         shell: pwsh
-        run: streamdeck validate "icu.veelume.sc-mapper.sdPlugin"
+        run: streamdeck validate "$env:PLUGIN_BUNDLE"
 
       - name: Verify Cargo version matches tag
         shell: pwsh
