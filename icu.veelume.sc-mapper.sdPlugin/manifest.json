@@ -30,7 +30,7 @@
       "Name": "Star Citizen Action",
       "Icon": "imgs/action/list",
       "Tooltip": "Send an action to Star Citizen",
-      "PropertyInspectorPath": "ui/action.htm",
+      "PropertyInspectorPath": "ui/action.html",
       "Controllers": [
         "Keypad"
       ],
