@@ -12,12 +12,15 @@ use std::{
 };
 use streamdeck_lib::prelude::*;
 
-use crate::PLUGIN_ID;
 use crate::sc::topics::{ACTIONS_CACHE_UPDATED, EXEC_SEND};
+use crate::{
+    PLUGIN_ID, bindings::translations::load_translations_cached_from_bindings,
+    sc::shared::appdata_dir,
+};
 use crate::{
     bindings::action_bindings::ActionBindingsStore,
     data_source::{DataSourceResult, Item, ItemGroup},
-    sc::{adapters::bindings_adapter::load_translations, shared::ResourceDir, topics::ExecSend},
+    sc::{shared::ResourceDir, topics::ExecSend},
     serde_helpers::{opt_u64_from_str_or_num, u64_from_str_or_num_default_200},
 };
 
@@ -149,9 +152,8 @@ impl Action for ScAction {
                     cx.log(),
                     "key_down: firing short action '{}' immediately", id
                 );
-                cx.bus().adapters_notify_topic_t(
+                cx.bus().publish_t(
                     EXEC_SEND,
-                    None,
                     ExecSend {
                         action_id: id.to_string(),
                         hold_ms: settings.short_hold_ms,
@@ -184,9 +186,8 @@ impl Action for ScAction {
                 ctx.log(),
                 "key_down: firing long action '{}' after {}ms", long_id, threshold_ms
             );
-            ctx.bus().adapters_notify_topic_t(
+            ctx.bus().publish_t(
                 EXEC_SEND,
-                None,
                 ExecSend {
                     action_id: long_id,
                     hold_ms: long_hold,
@@ -234,9 +235,8 @@ impl Action for ScAction {
                 id,
                 settings.short_hold_ms.unwrap_or(0)
             );
-            cx.bus().adapters_notify_topic_t(
+            cx.bus().publish_t(
                 EXEC_SEND,
-                None,
                 ExecSend {
                     action_id: id.to_string(),
                     hold_ms: settings.short_hold_ms,
@@ -270,7 +270,23 @@ fn build_pi_items(cx: &Context, cx_id: &str) {
         }
     };
     let bindings = action_store.snapshot();
-    let translations = load_translations(resource_dir.join("global.ini"), &cx.log());
+    let cache_path = match appdata_dir(PLUGIN_ID) {
+        Ok(mut p) => {
+            p.push("actions_cache.json");
+            p
+        }
+        Err(e) => {
+            error!(cx.log(), "Failed to get appdata dir: {}", e);
+            warn!(cx.log(), "Falling back to resource dir for actions cache");
+            resource_dir.join("actions_cache.json")
+        }
+    };
+    let translations = load_translations_cached_from_bindings(
+        resource_dir.join("global.ini"),
+        &bindings,
+        cache_path,
+        &cx.log(),
+    );
     let mut items = vec![DataSourceResult::Item(Item::with_label("", "No Action"))];
     items.extend(bindings.action_maps.values().map(|am| {
         let children: Vec<Item> = am

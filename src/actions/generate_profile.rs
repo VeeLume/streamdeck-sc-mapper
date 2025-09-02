@@ -76,7 +76,6 @@ impl Action for GenerateProfileAction {
 
         cx.bus().adapters_notify_name_of::<BindingsAdapter, _>(
             BINDINGS_REBUILD_AND_SAVE,
-            None,
             BindingsRebuildAndSave {
                 ty,
                 with_custom,

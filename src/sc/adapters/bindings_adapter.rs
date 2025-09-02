@@ -128,9 +128,8 @@ impl Adapter for BindingsAdapter {
                                 debug!(logger, "Storing ActionBindings in store");
                                 store.replace(ab);
 
-                                bus.action_notify_topic_t(
+                                bus.publish_t(
                                     BINDINGS_PARSED,
-                                    None,
                                     ()
                                 );
 
@@ -216,51 +215,6 @@ impl Adapter for BindingsAdapter {
 
         Ok(AdapterHandle::from_crossbeam(join, stop_tx))
     }
-}
-
-pub fn load_translations(
-    path: std::path::PathBuf,
-    logger: &Arc<dyn ActionLog>,
-) -> HashMap<String, String> {
-    if !path.try_exists().unwrap_or(false) {
-        warn!(logger, "no translations at {}", path.display());
-        return HashMap::new();
-    }
-    let content = match std::fs::read_to_string(&path) {
-        Ok(s) => s,
-        Err(e) => {
-            warn!(logger, "read {}: {}", path.display(), e);
-            return HashMap::new();
-        }
-    };
-
-    fn parse_line(line: &str) -> Option<(&str, &str)> {
-        if let Some(i) = line.find(",P=") {
-            let (k, v) = line.split_at(i);
-            return Some((k.trim(), v.trim_start_matches(",P=").trim()));
-        }
-        if let Some(i) = line.find(',') {
-            let (k, v) = line.split_at(i);
-            return Some((k.trim(), v.trim_start_matches(',').trim()));
-        }
-        if let Some(i) = line.find('=') {
-            let (k, v) = line.split_at(i);
-            return Some((k.trim(), v.trim_start_matches('=').trim()));
-        }
-        None
-    }
-
-    let mut map = HashMap::new();
-    for line in content.lines() {
-        let t = line.trim();
-        if t.is_empty() || t.starts_with(';') {
-            continue;
-        }
-        if let Some((k, v)) = parse_line(t) {
-            map.insert(k.to_string(), v.to_string());
-        }
-    }
-    map
 }
 
 fn parse_xml(

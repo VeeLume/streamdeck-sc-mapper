@@ -14,18 +14,42 @@ pub enum BindOrigin {
 }
 
 // What the "main" part of a bind is
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum BindMain {
     Key(Key),
     Mouse(MouseButton),
+    MouseWheelUp,
+    MouseWheelDown,
+    MouseAxis(String), // e.g. "maxis_x"
+    HMD(String),       // e.g. "hmd_pitch"
+    Unsupported,
 }
 
 impl fmt::Display for BindMain {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             BindMain::Key(k) => write!(f, "{k}"),
             BindMain::Mouse(btn) => write!(f, "{}", mouse_to_str(*btn)),
+            BindMain::MouseWheelUp => write!(f, "mwheel_up"),
+            BindMain::MouseWheelDown => write!(f, "mwheel_down"),
+            BindMain::MouseAxis(s) => write!(f, "maxis({s})"),
+            BindMain::HMD(s) => write!(f, "hmd({s})"),
+            BindMain::Unsupported => write!(f, "<unsupported>"),
         }
+    }
+}
+
+impl BindMain {
+    pub fn is_unsupported(&self) -> bool {
+        // Currently Unsupported, MouseWheelUp, MouseWheelDown, MouseAxis, and HMD are all considered unsupported for binding purposes
+        matches!(
+            self,
+            BindMain::Unsupported
+                | BindMain::MouseWheelUp
+                | BindMain::MouseWheelDown
+                | BindMain::MouseAxis(_)
+                | BindMain::HMD(_)
+        )
     }
 }
 
@@ -100,6 +124,11 @@ impl fmt::Display for Bind {
 
 impl Bind {
     #[inline]
+    pub fn is_executable(&self) -> bool {
+        !self.is_unbound && self.main.is_some() && !self.main.as_ref().unwrap().is_unsupported()
+    }
+
+    #[inline]
     pub fn new(
         mainkey: Option<BindMain>,
         modifiers: HashSet<Key>,
@@ -161,14 +190,44 @@ impl Bind {
         let mut main_keys: Vec<BindMain> = Vec::new();
 
         for seg in segments {
-            // Mouse tokens first
-            if let Some(m) = mouse_alias(seg) {
-                main_keys.push(BindMain::Mouse(m));
-                continue; // <-- important: don't try Key::parse on "mouse2"
+            let s = seg.to_ascii_lowercase();
+
+            // 1) Wheel tokens
+            match s.as_str() {
+                "mwheel_up" | "mwheelup" | "wheel_up" | "mouse_wheel_up" => {
+                    main_keys.push(BindMain::MouseWheelUp);
+                    continue;
+                }
+                "mwheel_down" | "mwheeldown" | "wheel_down" | "mouse_wheel_down" => {
+                    main_keys.push(BindMain::MouseWheelDown);
+                    continue;
+                }
+                // 2) Mouse axes
+                s if s.starts_with("maxis_") || s.starts_with("mouse_axis_") => {
+                    let axis_name = s
+                        .strip_prefix("maxis_")
+                        .or_else(|| s.strip_prefix("mouse_axis_"))
+                        .unwrap_or("unknown");
+                    main_keys.push(BindMain::MouseAxis(axis_name.into()));
+                    continue;
+                }
+                // 3) HMD axes
+                s if s.starts_with("hmd_") => {
+                    let hmd_name = s.strip_prefix("hmd_").unwrap_or("unknown");
+                    main_keys.push(BindMain::HMD(hmd_name.into()));
+                    continue;
+                }
+                _ => {}
             }
 
-            // Then keyboard tokens
-            if let Some(key) = Key::parse(seg) {
+            // 3) Mouse buttons
+            if let Some(m) = mouse_alias(&s) {
+                main_keys.push(BindMain::Mouse(m));
+                continue;
+            }
+
+            // 4) Keyboard
+            if let Some(key) = Key::parse(&s) {
                 if CANDIDATE_MODIFIERS.contains(&key) {
                     modifiers.insert(key);
                 } else {
@@ -198,7 +257,7 @@ impl Bind {
                 })
             }
             1 => {
-                let mainkey = main_keys[0];
+                let mainkey = main_keys.into_iter().next().unwrap();
                 Ok(Bind {
                     main: Some(mainkey),
                     modifiers,
@@ -264,13 +323,13 @@ fn mouse_alias(seg: &str) -> Option<MouseButton> {
     }
 }
 
-fn mouse_to_str(btn: MouseButton) -> &'static str {
+fn mouse_to_str(btn: MouseButton) -> String {
     match btn {
-        MouseButton::Left => "mouse1",
-        MouseButton::Right => "mouse2",
-        MouseButton::Middle => "mouse3",
-        MouseButton::X(1) => "mouse4",
-        MouseButton::X(2) => "mouse5",
-        MouseButton::X(_) => "mouse5", // clamp higher X buttons to 5 for stable text
+        MouseButton::Left => "mouse1".into(),
+        MouseButton::Right => "mouse2".into(),
+        MouseButton::Middle => "mouse3".into(),
+        MouseButton::X(1) => "mouse4".into(),
+        MouseButton::X(2) => "mouse5".into(),
+        MouseButton::X(n) => format!("mouse{}", n + 3),
     }
 }

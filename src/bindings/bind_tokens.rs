@@ -169,17 +169,27 @@ pub fn bind_to_token_no_prefix(
     let mut m: Vec<&'static str> = mods.iter().map(|k| k.to_token()).collect();
     m.sort_by(|a, b| mod_bucket(a).cmp(&mod_bucket(b)).then(a.cmp(b)));
 
+    // main → token
+    if main.is_unsupported() {
+        return None;
+    }
+
     let main_tok = match *main {
-        Key(k) => k.to_token(),
-        Mouse(btn) => mouse_to_token(btn),
+        Key(k) => k.to_token().into(),
+        Mouse(btn) => mouse_to_token(btn).into(),
+        MouseWheelUp => "mwheel_up".into(),
+        MouseWheelDown => "mwheel_down".into(),
+        MouseAxis(ref axis) => format!("maxis_{axis}"),
+        HMD(ref axis) => format!("hmd_{axis}"),
+        Unsupported => return None,
     };
 
     if m.is_empty() {
-        Some(main_tok.to_string())
+        Some(main_tok)
     } else {
         let mut s = m.join("+");
         s.push('+');
-        s.push_str(main_tok);
+        s.push_str(&main_tok);
         Some(s)
     }
 }
@@ -196,5 +206,10 @@ pub fn bind_to_input_with_prefix(
     match main.as_ref()? {
         Key(_) => Some(format!("kb{kb_inst}_{no_prefix}")),
         Mouse(_) => Some(format!("mo{mo_inst}_{no_prefix}")),
+        MouseWheelUp => Some(format!("kb{mo_inst}_mheel_up")),
+        MouseWheelDown => Some(format!("kb{mo_inst}_mheel_down")),
+        MouseAxis(axis) => Some(format!("mo{mo_inst}_maxis_{axis}")),
+        HMD(axis) => Some(format!("kb{mo_inst}_hmd_{axis}")),
+        Unsupported => None,
     }
 }

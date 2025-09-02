@@ -26,6 +26,7 @@ mod bindings {
     mod generate_mappings_xml;
     mod helpers;
     mod str_intern;
+    pub mod translations;
 }
 mod sc {
     pub mod shared;
@@ -79,8 +80,7 @@ fn main() {
             }
             HookEvent::ApplicationDidLaunch(app) => {
                 info!(cx.log(), "Application launched: {:?}", app);
-                cx.bus()
-                    .adapters_notify_topic_t(crate::sc::topics::INSTALL_SCAN, None, ());
+                cx.bus().publish_t(crate::sc::topics::INSTALL_SCAN, ());
             }
             HookEvent::ApplicationDidTerminate(app) => {
                 info!(cx.log(), "Application terminated: {:?}", app);
@@ -113,20 +113,14 @@ fn main() {
 
             // ---- typed notifies ----
             HookEvent::ActionNotify(ev) => {
-                info!(
-                    cx.log(),
-                    "Action notify topic={} context={:?}",
-                    ev.name(),
-                    ev.context()
-                );
+                info!(cx.log(), "Action notify topic={}", ev.name(),);
             }
             HookEvent::AdapterNotify(target, ev) => {
                 info!(
                     cx.log(),
-                    "Adapter notify target={:?} topic={} context={:?}",
+                    "Adapter notify target={:?} topic={}",
                     target,
                     ev.name(),
-                    ev.context()
                 );
                 // example: if you ever want to react to only certain targets:
                 // if matches!(target, AdapterTarget::Topic(t) if *t == crate::sc::topics::INSTALL_SCAN.name) { ... }

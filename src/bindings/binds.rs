@@ -27,6 +27,10 @@ impl Binds {
     }
 
     /// Parse binds for an <action> node, resolving activation modes into an arena (indices).
+    /// NOTE:
+    /// - Explicit `unbound` entries are *kept* (b.is_unbound == true) so callers can distinguish
+    ///   “explicitly clear this device” from “no change”.
+    /// - We no longer drop wheel/axis/HMD: they are parsed to MouseWheelUp/Down/Unsupported.
     pub fn from_node(
         action_node: roxmltree::Node,
         activation_modes: &mut ActivationArena,
@@ -35,48 +39,20 @@ impl Binds {
         let mut mouse = Vec::new();
         let mut errors = Vec::new();
 
-        #[inline]
-        fn contains_ignored_input(raw: &str) -> bool {
-            raw.split('+')
-                .map(|s| s.trim().to_ascii_lowercase())
-                .any(|tok| {
-                    matches!(
-                        tok.as_str(),
-                        // wheel
-                        "mwheel" |
-                            "mwheel_up" |
-                            "mwheel_down" |
-                            // axes
-                            "maxis_x" |
-                            "maxis_y" |
-                            "maxis_z" |
-                            "maxis_rx" |
-                            "maxis_ry" |
-                            "maxis_rz" |
-                            // hmd
-                            "hmd_roll" |
-                            "hmd_pitch" |
-                            "hmd_yaw"
-                    )
-                })
-        }
-
-        let mut route = |b: Bind| {
-            if b.is_unbound {
-                return;
-            }
-            match b.main {
-                Some(BindMain::Mouse(_)) => mouse.push(b),
-                _ => keyboard.push(b),
-            }
+        // Route *all* parsed binds, including explicit unbound, so the caller can tell intent.
+        let mut route = |b: Bind| match b.main {
+            // Wheel/Unsupported do not imply mouse vs keyboard; treat as keyboard side to match SC’s XML,
+            // BUT this only affects where they show up in our struct, not runtime behavior.
+            Some(BindMain::Mouse(_)) => mouse.push(b),
+            // Some(BindMain::MouseWheelUp) | Some(BindMain::MouseWheelDown) => mouse.push(b),
+            _ => keyboard.push(b),
         };
 
-        // flat attributes
+        // ---- flat attributes ----------------------------------------------------
         for attr_name in ["keyboard", "mouse"] {
             if let Some(raw) = action_node.attribute(attr_name) {
                 let trimmed = raw.trim();
-                if contains_ignored_input(trimmed) {
-                    // e.g. "ralt+mwheel_down" (not supported) — skip quietly
+                if trimmed.is_empty() {
                     continue;
                 }
                 let mode = ActivationMode::resolve(action_node, None, activation_modes);
@@ -87,21 +63,19 @@ impl Binds {
             }
         }
 
-        // nested device nodes
+        // ---- nested device nodes ------------------------------------------------
         for node in action_node
             .children()
             .filter(|n| n.is_element() && (n.has_tag_name("keyboard") || n.has_tag_name("mouse")))
         {
             if let Some(raw) = node.attribute("input") {
                 let trimmed = raw.trim();
-                if contains_ignored_input(trimmed) {
-                    continue;
-                }
-
-                let mode = ActivationMode::resolve(node, Some(action_node), activation_modes);
-                match Bind::from_string(trimmed, mode) {
-                    Ok(b) => route(b),
-                    Err(e) => errors.push(e),
+                if !trimmed.is_empty() {
+                    let mode = ActivationMode::resolve(node, Some(action_node), activation_modes);
+                    match Bind::from_string(trimmed, mode) {
+                        Ok(b) => route(b),
+                        Err(e) => errors.push(e),
+                    }
                 }
             }
 
@@ -111,7 +85,7 @@ impl Binds {
             {
                 if let Some(raw) = input.attribute("input") {
                     let trimmed = raw.trim();
-                    if contains_ignored_input(trimmed) {
+                    if trimmed.is_empty() {
                         continue;
                     }
 

@@ -1826,8 +1826,8 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
 name = "streamdeck-lib"
-version = "0.1.1"
-source = "git+https://github.com/veelume/streamdeck-lib?tag=v0.1.1#f48d311d0ed3d4b10f515acd895e638e457d246c"
+version = "0.2.0"
+source = "git+https://github.com/veelume/streamdeck-lib?tag=v0.2.0#00854d6ff416c1317fc402e502c81fa05f5f8d58"
 dependencies = [
  "anyhow",
  "chrono",

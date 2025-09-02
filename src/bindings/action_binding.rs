@@ -140,13 +140,28 @@ impl ActionBinding {
         use streamdeck_lib::input::dsl;
         use streamdeck_lib::input::{InputStep, InputSynth, Key, MouseButton, WinSynth};
 
-        // 0) Choose a bind: prefer keyboard, else mouse
-        let bind = {
-            let src = self.custom_binds.as_ref().unwrap_or(&self.default_binds);
-            let kb = src.keyboard.iter().find(|b| !b.is_unbound).cloned();
-            kb.or_else(|| src.mouse.iter().find(|b| !b.is_unbound).cloned())
-                .ok_or_else(|| "No keyboard or mouse bind found".to_string())?
-        };
+        // 0) Choose a bind: prefer custom, fall back to defaults, but only if runnable.
+        //    We ignore wheel/axis/HMD binds at runtime, so they don't get simulated.
+        let pick_first_runnable =
+            |binds: &crate::bindings::binds::Binds| -> Option<crate::bindings::bind::Bind> {
+                // Prefer keyboard binds, then mouse; skip unbound and unsupported
+                binds
+                    .keyboard
+                    .iter()
+                    .chain(binds.mouse.iter())
+                    .filter(|b| !b.is_unbound && b.is_executable())
+                    .cloned()
+                    .next()
+            };
+
+        let src_custom = self.custom_binds.as_ref();
+        let bind = if let Some(cb) = src_custom {
+            // Prefer a runnable custom bind; if none, fall back to defaults
+            pick_first_runnable(cb).or_else(|| pick_first_runnable(&self.default_binds))
+        } else {
+            pick_first_runnable(&self.default_binds)
+        }
+        .ok_or_else(|| "No executable bind found (only wheel/axis/HMD or unbound)".to_string())?;
 
         // 1) Resolve activation mode index: bind-level first, then action-level
         let am_ix = bind
@@ -409,6 +424,7 @@ impl ActionBinding {
                 // Default click (balanced)
                 send_with_safety(mouse_chord(&mods, btn), /*release_safety=*/ true)
             }
+            _ => Err("Bind main is not a key or mouse button".to_string()),
         }
     }
 

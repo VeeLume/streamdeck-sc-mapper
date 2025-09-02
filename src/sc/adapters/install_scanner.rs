@@ -63,15 +63,14 @@ impl Adapter for InstallScannerAdapter {
                     Ok((map, active_now)) => {
                         // update paths map
                         store.replace_all(map);
-                        bus.action_notify_topic_t(INSTALL_UPDATED, None, ());
+                        bus.publish_t(INSTALL_UPDATED, ());
 
                         // only emit if changed
                         let new_ty = active_now.unwrap_or(GameInstallType::Live);
                         if active.get() != new_ty {
                             active.set(new_ty);
-                            bus.action_notify_topic_t(
+                            bus.publish_t(
                                 INSTALL_ACTIVE_CHANGED,
-                                None,
                                 InstallActiveChanged { ty: new_ty },
                             );
                         }
@@ -82,7 +81,7 @@ impl Adapter for InstallScannerAdapter {
 
             // initial scan
             do_scan();
-            bus.adapters_notify_topic_t(INITIAL_INSTALL_SCAN_DONE, None, ());
+            bus.publish_t(INITIAL_INSTALL_SCAN_DONE, ());
             debug!(logger, "Initial install scan done");
 
             loop {

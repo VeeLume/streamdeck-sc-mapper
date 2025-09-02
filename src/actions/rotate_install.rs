@@ -90,7 +90,6 @@ impl Action for RotateInstallAction {
         // ⬇ important: notify adapters (BindingsAdapter listens for this)
         cx.bus().adapters_notify_name_of::<BindingsAdapter, _>(
             INSTALL_ACTIVE_CHANGED,
-            None,
             InstallActiveChanged { ty: next },
         );
 
