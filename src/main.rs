@@ -13,7 +13,7 @@ use streamdeck_lib::prelude::*;
 
 mod data_source;
 mod serde_helpers;
-mod bindings {
+pub mod bindings {
     mod action_binding;
     pub mod action_bindings;
     mod action_map;
@@ -28,7 +28,7 @@ mod bindings {
     mod str_intern;
     pub mod translations;
 }
-mod sc {
+pub mod sc {
     pub mod shared;
     pub mod topics;
     pub mod adapters {

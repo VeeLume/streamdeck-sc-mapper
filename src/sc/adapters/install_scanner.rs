@@ -107,7 +107,7 @@ impl Adapter for InstallScannerAdapter {
     }
 }
 
-fn scan_paths_and_active() -> Result<
+pub fn scan_paths_and_active() -> Result<
     (
         HashMap<GameInstallType, Option<PathBuf>>,
         Option<GameInstallType>,

@@ -1,6 +1,6 @@
 use chrono::Local;
 use crossbeam_channel::{Receiver as CbReceiver, bounded, select};
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 use streamdeck_lib::prelude::*;
 
 use crate::sc::shared::{ActiveInstall, GameInstallType, InstallPaths, ResourceDir, appdata_dir};
