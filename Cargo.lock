@@ -1585,7 +1585,7 @@ dependencies = [
 
 [[package]]
 name = "scmap-gen"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "clap",
  "serde",
@@ -1746,7 +1746,7 @@ dependencies = [
 
 [[package]]
 name = "streamdeck-sc-core"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "chrono",
  "directories",
@@ -1763,7 +1763,7 @@ dependencies = [
 
 [[package]]
 name = "streamdeck-sc-mapper"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "arc-swap",
  "chrono",
