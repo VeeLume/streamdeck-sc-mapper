@@ -133,7 +133,9 @@ jobs:
         run: |
           $exe = "target\release\$env:CLI_BIN"
           if (!(Test-Path $exe)) { throw "Missing built CLI exe at $exe" }
-          "path=$exe" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          $posix = $exe -replace '\\','/'
+          "path_win=$exe" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "path_posix=$posix" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -141,13 +143,13 @@ jobs:
           name: artifacts
           path: |
             *.streamDeckPlugin
-            ${{ steps.bin_cli.outputs.path }}
+            ${{ steps.bin_cli.outputs.path_posix }}
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
             *.streamDeckPlugin
-            ${{ steps.bin_cli.outputs.path }}
+            ${{ steps.bin_cli.outputs.path_posix }}
           fail_on_unmatched_files: true
           generate_release_notes: true
