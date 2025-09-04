@@ -57,7 +57,7 @@ pub fn load_translations_cached_from_bindings(
             continue;
         }
         if let Some((k, v)) = parse_line(t) {
-            if used.contains(k) || used.contains(&format!("@{}", k)) {
+            if used.contains(k) || used.contains(&format!("@{k}")) {
                 map.insert(k.to_string(), v.to_string());
                 if map.len() >= target {
                     break;

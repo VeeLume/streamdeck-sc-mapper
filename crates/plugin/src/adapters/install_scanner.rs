@@ -1,8 +1,7 @@
 use crossbeam_channel::{Receiver as CbReceiver, bounded, select};
-use regex::Regex;
-use std::{collections::HashMap, path::PathBuf, sync::Arc};
+use std::sync::Arc;
 use streamdeck_lib::prelude::*;
-use streamdeck_sc_core::prelude::GameInstallType;
+use streamdeck_sc_core::prelude::{GameInstallType, scan_paths_and_active};
 
 use crate::{
     state::{active_install_store::ActiveInstall, install_paths_store::InstallPaths},
@@ -109,73 +108,4 @@ impl Adapter for InstallScannerAdapter {
 
         Ok(AdapterHandle::from_crossbeam(join, stop_tx))
     }
-}
-
-pub fn scan_paths_and_active() -> Result<
-    (
-        HashMap<GameInstallType, Option<PathBuf>>,
-        Option<GameInstallType>,
-    ),
-    String,
-> {
-    use directories::BaseDirs;
-
-    let log_file = BaseDirs::new()
-        .ok_or("no data dir")?
-        .data_dir()
-        .join("rsilauncher")
-        .join("logs")
-        .join("log.log");
-
-    if !log_file.try_exists().unwrap_or(false) {
-        return Err(format!("launcher log not found at {}", log_file.display()));
-    }
-    let content = std::fs::read_to_string(&log_file).map_err(|e| e.to_string())?;
-
-    // Plain “Launching … from (…)” lines per channel
-    let live = Regex::new(r#"Launching Star Citizen LIVE from \((.+)\)"#).unwrap();
-    let ptu = Regex::new(r#"Launching Star Citizen PTU from \((.+)\)"#).unwrap();
-    let tech = Regex::new(r#"Launching Star Citizen Tech Preview from \((.+)\)"#).unwrap();
-
-    // Unified matcher with optional “[Launcher::launch] ” prefix
-    let launch_line = Regex::new(
-        r#"(?:\[Launcher::launch\]\s+)?Launching Star Citizen (LIVE|PTU|Tech Preview) from \((.+)\)"#
-    ).unwrap();
-
-    let mut found: HashMap<GameInstallType, PathBuf> = HashMap::new();
-    let mut last_active: Option<GameInstallType> = None;
-
-    for line in content.lines() {
-        // Capture install roots (and consider these as “active” moments too)
-        if let Some(c) = live.captures(line).and_then(|c| c.get(1)) {
-            found.insert(GameInstallType::Live, PathBuf::from(c.as_str()));
-            last_active = Some(GameInstallType::Live);
-        }
-        if let Some(c) = ptu.captures(line).and_then(|c| c.get(1)) {
-            found.insert(GameInstallType::Ptu, PathBuf::from(c.as_str()));
-            last_active = Some(GameInstallType::Ptu);
-        }
-        if let Some(c) = tech.captures(line).and_then(|c| c.get(1)) {
-            found.insert(GameInstallType::TechPreview, PathBuf::from(c.as_str()));
-            last_active = Some(GameInstallType::TechPreview);
-        }
-
-        // Also match the variant that includes “[Launcher::launch] …”
-        if let Some(caps) = launch_line.captures(line) {
-            last_active = match caps.get(1).map(|m| m.as_str()) {
-                Some("LIVE") => Some(GameInstallType::Live),
-                Some("PTU") => Some(GameInstallType::Ptu),
-                Some("Tech Preview") => Some(GameInstallType::TechPreview),
-                _ => last_active,
-            };
-        }
-    }
-
-    // Normalize to output shape
-    let mut out: HashMap<GameInstallType, Option<PathBuf>> = HashMap::new();
-    for ty in GameInstallType::ALL {
-        out.insert(ty, found.get(&ty).cloned());
-    }
-
-    Ok((out, last_active))
 }

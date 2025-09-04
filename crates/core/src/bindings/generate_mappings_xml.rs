@@ -110,7 +110,7 @@ impl ActionBindings {
             am.push_attribute(("name", map_name.as_ref()));
             writer
                 .write_event(Event::Start(am))
-                .map_err(|e| format!("<actionmap name=\"{}\">: {e}", map_name))?;
+                .map_err(|e| format!("<actionmap name=\"{map_name}\">: {e}"))?;
 
             for action in custom_actions {
                 let custom = action.custom_binds.as_ref().expect("checked above");

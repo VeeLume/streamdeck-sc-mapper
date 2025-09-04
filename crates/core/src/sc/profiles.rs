@@ -142,7 +142,7 @@ pub fn save_bindings_profile_and_cache(
     let json_path = bindings_cache_path(plugin_id, ty)?;
     let json = ab
         .to_json()
-        .map_err(|e| format!("serialize bindings: {}", e))?;
+        .map_err(|e| format!("serialize bindings: {e}"))?;
     fs::write(&json_path, json).map_err(|e| format!("write {}: {}", json_path.display(), e))?;
     logger.info(&format!(
         "wrote {}",

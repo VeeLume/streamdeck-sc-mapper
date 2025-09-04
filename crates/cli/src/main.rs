@@ -199,8 +199,8 @@ fn main() -> Result<(), String> {
     let mut ab = ActionBindings::default();
     ab.load_default_profile(
         &default_xml,
-        &*SKIP_ACTION_MAPS,
-        &*ACTION_MAP_UI_CATEGORIES,
+        &SKIP_ACTION_MAPS,
+        &ACTION_MAP_UI_CATEGORIES,
         &core_log,
     )?;
 
@@ -296,7 +296,7 @@ fn default_profile_label() -> String {
         .duration_since(SystemTime::UNIX_EPOCH)
         .map(|d| d.as_secs())
         .unwrap_or(0);
-    format!("Generated {} (scmap-gen)", ts)
+    format!("Generated {ts} (scmap-gen)")
 }
 
 fn derive_output_path(anchor: &Path) -> PathBuf {
@@ -355,25 +355,25 @@ fn bindgen_from_config(
     let available_keys = cfg
         .candidate_keys
         .as_ref()
-        .map(|v| parse_key_list(v, &logger))
+        .map(|v| parse_key_list(v, logger))
         .unwrap_or_else(|| CANDIDATE_KEYS.clone());
 
     let available_modifiers = cfg
         .candidate_modifiers
         .as_ref()
-        .map(|v| parse_key_list(v, &logger))
+        .map(|v| parse_key_list(v, logger))
         .unwrap_or_else(|| CANDIDATE_MODIFIERS.clone());
 
     let banned_binds = cfg
         .deny_combos
         .as_ref()
-        .map(|v| parse_binds(v, &logger))
+        .map(|v| parse_binds(v, logger))
         .unwrap_or_else(|| DENY_COMBOS.clone());
 
     let disallowed_modifiers = cfg
         .disallowed_modifiers_per_category
         .as_ref()
-        .map(|m| parse_disallowed_map(m, &logger))
+        .map(|m| parse_disallowed_map(m, logger))
         .unwrap_or_else(|| {
             DENY_MODIFIERS_PER_CATEGORY
                 .iter()

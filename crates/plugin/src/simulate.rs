@@ -40,9 +40,8 @@ impl SimulateExt for ActionBinding {
                 .keyboard
                 .iter()
                 .chain(binds.mouse.iter())
-                .filter(|b| !b.is_unbound && b.is_executable())
+                .find(|b| !b.is_unbound && b.is_executable())
                 .cloned()
-                .next()
         };
 
         let bind = if let Some(cb) = self.custom_binds.as_ref() {
