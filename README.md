@@ -275,7 +275,7 @@ Project Link: [https://github.com/veelume/streamdeck-sc-mapper](https://github.c
 [issues-shield]: https://img.shields.io/github/issues/veelume/streamdeck-sc-mapper.svg?style=for-the-badge
 [issues-url]: https://github.com/veelume/streamdeck-sc-mapper/issues
 [license-shield]: https://img.shields.io/github/license/veelume/streamdeck-sc-mapper.svg?style=for-the-badge
-[license-url]: https://github.com/veelume/streamdeck-sc-mapper/blob/master/LICENSE
+[license-url]: https://github.com/VeeLume/streamdeck-sc-mapper/blob/main/LICENSE
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
 [linkedin-url]: https://linkedin.com/in/linkedin_username
 [product-screenshot]: images/screenshot.png
