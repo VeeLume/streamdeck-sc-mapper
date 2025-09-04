@@ -1587,7 +1587,6 @@ dependencies = [
 name = "scmap-gen"
 version = "0.1.4"
 dependencies = [
- "chrono",
  "clap",
  "serde",
  "serde_json",

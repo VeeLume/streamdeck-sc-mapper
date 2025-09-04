@@ -12,10 +12,14 @@ jobs:
       contents: write
 
     env:
-      # Adjust if your bundle folder is named differently
+      # ===== tweak if you rename things =====
+      PLUGIN_CRATE: streamdeck-sc-mapper
       PLUGIN_BUNDLE: icu.veelume.sc-mapper.sdPlugin
-      # The filename inside the bundle the manifest expects
       BINARY_DST: icu.veelume.sc-mapper.exe
+
+      CLI_CRATE: scmap-gen
+      CLI_BIN: scmap-gen.exe
+      # ======================================
 
     steps:
       - name: Checkout repository
@@ -37,49 +41,59 @@ jobs:
 
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref_type == 'tag' }}
 
-      - name: Rust preflight
+      # Lint/compile the whole workspace
+      - name: Rust preflight (workspace)
         shell: pwsh
         run: |
           cargo fmt --all -- --check
-          cargo clippy --all-targets --all-features
-          cargo check --all-targets --all-features
+          cargo clippy --workspace --all-targets --all-features
+          cargo check  --workspace --all-targets --all-features
 
-      - name: Verify Cargo version matches tag
+      # Verify BOTH crates match the tag (they use workspace.version)
+      - name: Verify crate versions match tag
         shell: pwsh
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
         run: |
           $meta = cargo metadata --no-deps --format-version 1 | Out-String | ConvertFrom-Json
-          $root = $meta.packages | Where-Object { $_.manifest_path -eq (Resolve-Path .\Cargo.toml).Path }
-          if (-not $root) { throw "Could not detect crate" }
-          $cargoVer = $root.version
-          $tagVer = "${{ steps.version.outputs.tag }}"
-          if ($cargoVer -ne $tagVer) {
-            throw "Cargo.toml version ($cargoVer) != tag ($tagVer)"
+
+          $plugin = $meta.packages | Where-Object { $_.name -eq $env:PLUGIN_CRATE }
+          if (-not $plugin) { throw "Could not find plugin crate '$env:PLUGIN_CRATE' in workspace" }
+          if ($plugin.version -ne $env:TAG) {
+            throw "Plugin Cargo.toml version ($($plugin.version)) != tag ($env:TAG)"
           }
 
+          $cli = $meta.packages | Where-Object { $_.name -eq $env:CLI_CRATE }
+          if (-not $cli) { throw "Could not find CLI crate '$env:CLI_CRATE' in workspace" }
+          if ($cli.version -ne $env:TAG) {
+            throw "CLI Cargo.toml version ($($cli.version)) != tag ($env:TAG)"
+          }
 
-      - name: Build (release)
+      # ─────────────────────────────────────────
+      # Build plugin
+      # ─────────────────────────────────────────
+      - name: Build plugin (release)
         shell: pwsh
-        run: cargo build --release
+        run: cargo build -p "$env:PLUGIN_CRATE" --release --all-features
 
-      - name: Detect crate binary name
-        id: crate
+      - name: Detect plugin binary path
+        id: bin_plugin
         shell: pwsh
         run: |
-          $meta = cargo metadata --no-deps --format-version 1 | Out-String | ConvertFrom-Json
-          $root = $meta.packages | Where-Object { $_.manifest_path -eq (Resolve-Path .\Cargo.toml).Path }
-          if (-not $root) { throw "Could not detect crate name" }
-          "name=$($root.name)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          $exe = "target\release\$env:PLUGIN_CRATE.exe"
+          if (!(Test-Path $exe)) { throw "Missing built exe at $exe" }
+          "path=$exe" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Place binary into .sdPlugin bundle
         shell: pwsh
         env:
-          BIN_NAME: ${{ steps.crate.outputs.name }}
+          BIN_SRC: ${{ steps.bin_plugin.outputs.path }}
         run: |
           New-Item -ItemType Directory -Force -Path "$env:PLUGIN_BUNDLE" | Out-Null
-          $src = "target\release\${env:BIN_NAME}.exe"
-          if (!(Test-Path $src)) { throw "Missing built exe at $src" }
-          Copy-Item $src "$env:PLUGIN_BUNDLE\$env:BINARY_DST" -Force
+          Copy-Item "$env:BIN_SRC" "$env:PLUGIN_BUNDLE\$env:BINARY_DST" -Force
 
       - name: Sync manifest version to tag+build
         shell: pwsh
@@ -106,15 +120,34 @@ jobs:
         shell: pwsh
         run: streamdeck pack "$env:PLUGIN_BUNDLE"
 
-      - name: Upload plugin artifact
+      # ─────────────────────────────────────────
+      # Build CLI
+      # ─────────────────────────────────────────
+      - name: Build CLI (release)
+        shell: pwsh
+        run: cargo build -p "$env:CLI_CRATE" --release --all-features
+
+      - name: Collect CLI artifact
+        id: bin_cli
+        shell: pwsh
+        run: |
+          $exe = "target\release\$env:CLI_BIN"
+          if (!(Test-Path $exe)) { throw "Missing built CLI exe at $exe" }
+          "path=$exe" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: streamDeckPlugin
-          path: "*.streamDeckPlugin"
+          name: artifacts
+          path: |
+            *.streamDeckPlugin
+            ${{ steps.bin_cli.outputs.path }}
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: "*.streamDeckPlugin"
+          files: |
+            *.streamDeckPlugin
+            ${{ steps.bin_cli.outputs.path }}
           fail_on_unmatched_files: true
           generate_release_notes: true
