@@ -1,0 +1,23 @@
+[package]
+name = "streamdeck-sc-mapper"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+streamdeck-lib.workspace = true
+crossbeam-channel.workspace = true
+constcat.workspace = true
+arc-swap.workspace = true
+parking_lot.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+indexmap.workspace = true
+regex.workspace = true
+chrono.workspace = true
+once_cell.workspace = true
+directories.workspace = true
+
+# Depend on the core lib
+streamdeck-sc-core = { path = "../core" }
