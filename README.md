@@ -150,6 +150,7 @@ scmap-gen.exe --default "./defaultProfile.xml" --include-custom
 
 Options:
 - `--default` -> required, points to the `defaultProfile.xml` extracted from the game files
+You find the current shipped one here [here](https://github.com/VeeLume/streamdeck-sc-mapper/blob/main/icu.veelume.sc-mapper.sdPlugin/defaultProfile.xml) (i try to keep that up to date until i have extraction solution ready)
 - `--include-custom` -> also merges you current keybinds
 - Result: generates `mappings-generated.xml` profile with missing binds filled in
 
@@ -191,6 +192,7 @@ After installation, add SC Mapper actions to your Stream Deck.
 <!-- ROADMAP -->
 ## Roadmap
 
+- [ ] Automatically extract the `defaultProfile.xml` and `globals.ini` from the game files
 - [ ] Power setup action
 - [ ] MFD setup action
 - [ ] Expand cli options
